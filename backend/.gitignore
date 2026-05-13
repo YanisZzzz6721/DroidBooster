@@ -1,0 +1,19 @@
+# Données personnelles
+offers/
+output/
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+dist/
+*.egg-info/
+.pytest_cache/
+
+# CVs compilés
+cvs/*.pdf
+
+# macOS
+.DS_Store

@@ -1,0 +1,14 @@
+mkdir -p cvs offers output templates src/airecruit tests
+touch src/airecruit/__init__.py
+touch src/airecruit/cli.py
+touch src/airecruit/parser.py
+touch src/airecruit/matcher.py
+touch src/airecruit/generator.py
+touch tests/test_parser.py
+touch tests/test_matcher.py
+touch .env.example
+
+
+git add .
+git commit -m "feat: setup initial du projet — structure, CLI squelette, pyproject.toml"
+git push

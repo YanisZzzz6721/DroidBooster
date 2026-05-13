@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "airecruit"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "typer",
+    "anthropic",
+    "pdfplumber",
+    "python-docx",
+    "python-dotenv",
+    "jinja2",
+    "fastapi",
+    "uvicorn",
+    "python-multipart",
+]
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.scripts]
+airecruit = "airecruit.cli:app"
