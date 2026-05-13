@@ -1,25 +1,33 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 import "./globals.css"
-import Navbar from "@/components/Navbar"
- 
-const inter = Inter({ subsets: ["latin"] })
- 
+import Sidebar from "@/components/Sidebar"
+
 export const metadata: Metadata = {
-  title: "AIRecruit",
-  description: "Générateur de lettres de motivation et optimiseur de CV",
+  title: "DroidBooster",
+  description: "Automatisation de candidatures par IA",
 }
- 
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr">
-      <body className={`${inter.className} bg-neutral-50 text-neutral-900 min-h-screen`}>
-        <Navbar />
-        <main className="max-w-4xl mx-auto px-4 py-10">
-          {children}
-        </main>
+      <body>
+        <div style={{ display: "flex", minHeight: "100vh" }}>
+
+          {/* Sidebar fixe */}
+          <Sidebar />
+
+          {/* Contenu principal */}
+          <main style={{
+            flex: 1,
+            marginLeft: "220px",
+            padding: "2.5rem",
+            maxWidth: "900px",
+          }}>
+            {children}
+          </main>
+
+        </div>
       </body>
     </html>
   )
 }
- 

@@ -1,26 +1,282 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+
+/* ─── Variables ──────────────────────────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --turquoise:   #0ABFBC;
+  --turquoise-dark: #089490;
+  --orange:      #E8630A;
+  --orange-dark: #C4520A;
+  --black:       #0D0D0D;
+  --white:       #FAFAF8;
+  --gray-100:    #F0EFE9;
+  --gray-200:    #E0DED7;
+  --gray-400:    #9B9890;
+  --gray-600:    #5C5A54;
+
+  --shadow:      4px 4px 0px var(--black);
+  --shadow-sm:   2px 2px 0px var(--black);
+  --shadow-lg:   6px 6px 0px var(--black);
+  --border:      2px solid var(--black);
+  --radius:      0px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ─── Reset ──────────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--white);
+  color: var(--black);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Typographie ────────────────────────────────────────────────────────────── */
+h1, h2, h3, h4 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+h1 { font-size: 2rem;   }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.1rem; }
+
+code, pre, .mono {
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ─── Composants globaux ─────────────────────────────────────────────────────── */
+
+/* Carte brute */
+.card {
+  background: var(--white);
+  border: var(--border);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+  transition: box-shadow 0.1s ease, transform 0.1s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translate(-1px, -1px);
+}
+
+/* Bouton push-up orange */
+.btn-primary {
+  background: var(--orange);
+  color: var(--white);
+  border: var(--border);
+  box-shadow: var(--shadow);
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.65rem 1.5rem;
+  cursor: pointer;
+  border-radius: 0;
+  transition: box-shadow 0.08s ease, transform 0.08s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  letter-spacing: 0.01em;
+}
+
+.btn-primary:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translate(-1px, -1px);
+}
+
+.btn-primary:active {
+  box-shadow: none;
+  transform: translate(4px, 4px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: var(--shadow);
+}
+
+/* Bouton secondaire turquoise */
+.btn-secondary {
+  background: var(--white);
+  color: var(--black);
+  border: var(--border);
+  box-shadow: var(--shadow-sm);
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.5rem 1.2rem;
+  cursor: pointer;
+  border-radius: 0;
+  transition: box-shadow 0.08s ease, transform 0.08s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-secondary:hover {
+  background: var(--turquoise);
+  color: var(--white);
+  box-shadow: var(--shadow);
+  transform: translate(-1px, -1px);
+}
+
+.btn-secondary:active {
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+/* Input / Textarea */
+.input {
+  width: 100%;
+  border: var(--border);
+  background: var(--white);
+  color: var(--black);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0;
+  outline: none;
+  transition: box-shadow 0.1s ease;
+  resize: none;
+}
+
+.input:focus {
+  box-shadow: var(--shadow);
+}
+
+.input::placeholder {
+  color: var(--gray-400);
+}
+
+/* Label */
+.label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gray-600);
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+/* Badge */
+.badge {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.2rem 0.6rem;
+  border: 1.5px solid var(--black);
+  display: inline-block;
+}
+
+.badge-turquoise {
+  background: var(--turquoise);
+  color: var(--white);
+}
+
+.badge-orange {
+  background: var(--orange);
+  color: var(--white);
+}
+
+.badge-ghost {
+  background: transparent;
+  color: var(--black);
+}
+
+/* Separateur */
+.divider {
+  border: none;
+  border-top: var(--border);
+  margin: 1.5rem 0;
+}
+
+/* Tag score */
+.score-tag {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 2rem;
+  border: var(--border);
+  box-shadow: var(--shadow);
+  padding: 0.5rem 1rem;
+  display: inline-block;
+}
+
+/* Onglets */
+.tab-bar {
+  display: flex;
+  border-bottom: var(--border);
+  gap: 0;
+}
+
+.tab {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.6rem 1.2rem;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.1s ease;
+  color: var(--gray-400);
+}
+
+.tab:hover {
+  color: var(--black);
+  background: var(--gray-100);
+}
+
+.tab.active {
+  color: var(--black);
+  border-bottom-color: var(--orange);
+  background: var(--gray-100);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--gray-100); }
+::-webkit-scrollbar-thumb { background: var(--gray-200); border: 1px solid var(--black); }
+::-webkit-scrollbar-thumb:hover { background: var(--gray-400); }
+
+/* Animations */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+.animate-in {
+  animation: slideIn 0.2s ease forwards;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1;   }
+  50%       { opacity: 0.4; }
+}
+
+.loading-dot {
+  animation: pulse-dot 1.2s ease infinite;
 }

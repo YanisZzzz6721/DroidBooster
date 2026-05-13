@@ -2,13 +2,28 @@
 
 import { useState, useRef } from "react"
 import { runPipeline, type RunResult } from "@/lib/api"
+import PushButton from "@/components/PushButton"
+import Card from "@/components/Card"
+import ScoreBar from "@/components/ScoreBar"
+import KeywordBadge from "@/components/KeywordBadge"
 import MarkdownView from "@/components/MarkdownView"
 
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
 const MODES = [
-  { value: "full",        label: "Pipeline complet", desc: "Lettre + ATS + CV optimisé" },
-  { value: "letter_only", label: "Lettre seulement", desc: "Génère uniquement la lettre" },
-  { value: "cv_only",     label: "CV optimisé",      desc: "Analyse ATS + CV réécrit"   },
+  { value: "full",         label: "Pipeline complet", desc: "Lettre + ATS + CV"     },
+  { value: "letter_only",  label: "Lettre seulement", desc: "Génère la lettre seule" },
+  { value: "cv_only",      label: "CV optimisé",      desc: "Analyse ATS + CV"       },
 ]
+
+const TABS = [
+  { key: "lettre", label: "Lettre"      },
+  { key: "ats",    label: "Rapport ATS" },
+  { key: "cv",     label: "CV optimisé" },
+  { key: "match",  label: "Match"       },
+]
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Home() {
   const [offerText,   setOfferText]   = useState("")
@@ -33,216 +48,390 @@ export default function Home() {
       const data = await runPipeline(offerText, preferences, mode, file)
       setResult(data)
       setActiveTab(mode === "cv_only" ? "ats" : "lettre")
-    } catch (e: any) {
-      setError(e.message)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Erreur inconnue")
     } finally {
       setLoading(false)
     }
   }
 
-  const tabs = [
-    { key: "lettre", label: "Lettre",      show: !!result?.lettre_md      },
-    { key: "ats",    label: "Rapport ATS", show: !!result?.ats            },
-    { key: "cv",     label: "CV optimisé", show: !!result?.cv_optimise_md },
-    { key: "match",  label: "Match",       show: !!result?.match          },
-  ].filter(t => t.show)
+  const visibleTabs = TABS.filter(t => {
+    if (t.key === "lettre") return !!result?.lettre_md
+    if (t.key === "ats")    return !!result?.ats
+    if (t.key === "cv")     return !!result?.cv_optimise_md
+    if (t.key === "match")  return !!result?.match
+    return false
+  })
 
   return (
-    <div className="space-y-8">
+    <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
 
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Générer</h1>
-        <p className="text-sm text-neutral-500 mt-1">
-          Dépose une offre, choisis ton mode et lance le pipeline.
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.3rem" }}>
+          <span style={{
+            fontFamily:  "'IBM Plex Mono', monospace",
+            fontSize:    "0.72rem",
+            background:  "var(--orange)",
+            color:       "var(--white)",
+            padding:     "0.15rem 0.5rem",
+            border:      "1.5px solid var(--black)",
+          }}>
+            PIPELINE
+          </span>
+        </div>
+        <h1 style={{ fontSize: "1.8rem", marginBottom: "0.3rem" }}>Générer</h1>
+        <p style={{ color: "var(--gray-600)", fontSize: "0.88rem" }}>
+          Dépose une offre d'emploi, configure tes préférences et lance le pipeline.
         </p>
       </div>
 
-      <div className="space-y-4">
+      {/* ── Formulaire ─────────────────────────────────────────────────────── */}
+      <Card title="Offre d'emploi" tag="ÉTAPE 1" tagColor="turquoise">
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-neutral-700">Offre d'emploi</label>
-          <textarea
-            value={offerText}
-            onChange={e => setOfferText(e.target.value)}
-            placeholder="Colle le texte de l'offre ici..."
-            rows={6}
-            className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-          />
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-neutral-400">ou</span>
-            <button
-              onClick={() => fileRef.current?.click()}
-              className="text-xs text-blue-600 hover:underline"
-            >
-              {file ? `📄 ${file.name}` : "Uploader un PDF"}
-            </button>
-            {file && (
-              <button onClick={() => setFile(null)} className="text-xs text-neutral-400 hover:text-red-500">
-                Retirer
+        <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+
+          {/* Textarea offre */}
+          <div>
+            <label className="label">Texte de l'offre</label>
+            <textarea
+              className="input"
+              value={offerText}
+              onChange={e => setOfferText(e.target.value)}
+              placeholder="Colle ici le texte complet de l'offre d'emploi..."
+              rows={6}
+            />
+            <div style={{ marginTop: "0.5rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
+              <span style={{ color: "var(--gray-400)", fontSize: "0.8rem" }}>ou</span>
+              <button
+                onClick={() => fileRef.current?.click()}
+                style={{
+                  fontFamily:  "'IBM Plex Mono', monospace",
+                  fontSize:    "0.75rem",
+                  color:       "var(--turquoise)",
+                  background:  "transparent",
+                  border:      "none",
+                  cursor:      "pointer",
+                  textDecoration: "underline",
+                  padding:     0,
+                }}
+              >
+                {file ? `📄 ${file.name}` : "Uploader un PDF"}
               </button>
-            )}
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".pdf,.txt,.md"
-              className="hidden"
-              onChange={e => setFile(e.target.files?.[0] || null)}
+              {file && (
+                <button
+                  onClick={() => setFile(null)}
+                  style={{
+                    fontFamily: "'IBM Plex Mono', monospace",
+                    fontSize:   "0.72rem",
+                    color:      "#c0392b",
+                    background: "transparent",
+                    border:     "none",
+                    cursor:     "pointer",
+                    padding:    0,
+                  }}
+                >
+                  ✗ Retirer
+                </button>
+              )}
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".pdf,.txt,.md"
+                style={{ display: "none" }}
+                onChange={e => setFile(e.target.files?.[0] || null)}
+              />
+            </div>
+          </div>
+
+          {/* Préférences */}
+          <div>
+            <label className="label">
+              Préférences IA{" "}
+              <span style={{ color: "var(--gray-400)", textTransform: "none", letterSpacing: 0 }}>
+                (optionnel)
+              </span>
+            </label>
+            <textarea
+              className="input"
+              value={preferences}
+              onChange={e => setPreferences(e.target.value)}
+              placeholder="Ex : insiste sur l'expérience SNCF, lettre courte et directe, ton dynamique..."
+              rows={2}
             />
           </div>
-        </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-neutral-700">
-            Préférences <span className="text-neutral-400 font-normal">(optionnel)</span>
-          </label>
-          <textarea
-            value={preferences}
-            onChange={e => setPreferences(e.target.value)}
-            placeholder="Ex : insiste sur l'expérience SNCF, lettre courte et directe..."
-            rows={2}
-            className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-neutral-700">Mode</label>
-          <div className="grid grid-cols-3 gap-2">
-            {MODES.map(m => (
-              <button
-                key={m.value}
-                onClick={() => setMode(m.value)}
-                aria-pressed={mode === m.value}
-                className={`rounded-lg border px-3 py-2.5 text-left transition-colors ${
-                  mode === m.value
-                    ? "border-blue-500 bg-blue-50 text-blue-700"
-                    : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300"
-                }`}
-              >
-                <div className="text-sm font-medium">{m.label}</div>
-                <div className="text-xs text-neutral-400 mt-0.5">{m.desc}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {error && (
-          <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
-            {error}
-          </div>
-        )}
-
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          className="w-full rounded-lg bg-blue-600 text-white font-medium text-sm py-2.5 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {loading ? "Génération en cours..." : "Lancer"}
-        </button>
-
-      </div>
-
-      {result && (
-        <div className="space-y-4">
-
-          <div className="flex items-center gap-4 p-4 rounded-lg bg-white border border-neutral-200">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{result.match.match_score}</div>
-              <div className="text-xs text-neutral-400">Match</div>
-            </div>
-            {result.ats && (
-              <>
-                <div className="h-8 w-px bg-neutral-200" />
-                <div className="text-center">
-                  <div className={`text-2xl font-bold ${result.ats.score >= 70 ? "text-green-600" : result.ats.score >= 50 ? "text-yellow-600" : "text-red-600"}`}>
-                    {result.ats.score}
-                  </div>
-                  <div className="text-xs text-neutral-400">ATS</div>
-                </div>
-              </>
-            )}
-            <div className="flex-1 ml-2">
-              <div className="text-sm font-medium text-neutral-700">{result.match.cv_name}</div>
-              <div className="text-xs text-neutral-400 mt-0.5">{result.match.selection_reason}</div>
-            </div>
-          </div>
-
-          {tabs.length > 0 && (
-            <div className="flex gap-1 border-b border-neutral-200">
-              {tabs.map(t => (
+          {/* Mode */}
+          <div>
+            <label className="label">Mode</label>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem" }}>
+              {MODES.map(m => (
                 <button
-                  key={t.key}
-                  onClick={() => setActiveTab(t.key)}
-                  className={`px-4 py-2 text-sm transition-colors border-b-2 -mb-px ${
-                    activeTab === t.key
-                      ? "border-blue-600 text-blue-600 font-medium"
-                      : "border-transparent text-neutral-500 hover:text-neutral-900"
-                  }`}
+                  key={m.value}
+                  onClick={() => setMode(m.value)}
+                  style={{
+                    padding:     "0.75rem",
+                    textAlign:   "left",
+                    cursor:      "pointer",
+                    border:      mode === m.value ? "2px solid var(--black)" : "2px solid var(--gray-200)",
+                    background:  mode === m.value ? "var(--black)" : "var(--white)",
+                    boxShadow:   mode === m.value ? "3px 3px 0px var(--orange)" : "none",
+                    transition:  "all 0.1s ease",
+                  }}
                 >
-                  {t.label}
+                  <div style={{
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    fontWeight: 700,
+                    fontSize:   "0.82rem",
+                    color:      mode === m.value ? "var(--white)" : "var(--black)",
+                    marginBottom: "0.2rem",
+                  }}>
+                    {m.label}
+                  </div>
+                  <div style={{
+                    fontFamily: "'IBM Plex Mono', monospace",
+                    fontSize:   "0.68rem",
+                    color:      mode === m.value ? "var(--gray-400)" : "var(--gray-400)",
+                  }}>
+                    {m.desc}
+                  </div>
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Erreur */}
+          {error && (
+            <div style={{
+              padding:    "0.75rem 1rem",
+              border:     "2px solid #c0392b",
+              background: "#fdf0f0",
+              fontFamily: "'IBM Plex Mono', monospace",
+              fontSize:   "0.8rem",
+              color:      "#c0392b",
+              boxShadow:  "3px 3px 0px #c0392b",
+            }}>
+              ✗ {error}
+            </div>
           )}
 
-          {activeTab === "lettre" && result.lettre_md && (
-            <MarkdownView content={result.lettre_md} label="Lettre de motivation" />
-          )}
+          {/* Submit */}
+          <PushButton
+            variant="primary"
+            size="lg"
+            fullWidth
+            loading={loading}
+            onClick={handleSubmit}
+          >
+            {!loading && "⚡ Lancer le pipeline"}
+          </PushButton>
 
-          {activeTab === "ats" && result.ats && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg border border-neutral-200 bg-white p-4">
-                  <div className="text-xs text-neutral-400 mb-2">✅ Présents ({result.ats.keywords_found.length})</div>
-                  <div className="flex flex-wrap gap-1">
-                    {result.ats.keywords_found.map((k: string) => (
-                      <span key={k} className="px-2 py-0.5 bg-green-50 text-green-700 text-xs rounded-full border border-green-200">{k}</span>
-                    ))}
-                  </div>
-                </div>
-                <div className="rounded-lg border border-neutral-200 bg-white p-4">
-                  <div className="text-xs text-neutral-400 mb-2">❌ Manquants ({result.ats.keywords_missing.length})</div>
-                  <div className="flex flex-wrap gap-1">
-                    {result.ats.keywords_missing.map((k: string) => (
-                      <span key={k} className="px-2 py-0.5 bg-red-50 text-red-700 text-xs rounded-full border border-red-200">{k}</span>
-                    ))}
-                  </div>
+        </div>
+      </Card>
+
+      {/* ── Résultats ──────────────────────────────────────────────────────── */}
+      {result && (
+        <div className="animate-in" style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+
+          {/* Score summary */}
+          <div style={{
+            display:   "grid",
+            gridTemplateColumns: result.ats ? "1fr 1fr 2fr" : "1fr 3fr",
+            gap:       "1rem",
+          }}>
+            <div style={{
+              border:     "2px solid var(--black)",
+              boxShadow:  "4px 4px 0px var(--black)",
+              padding:    "1rem",
+              background: "var(--white)",
+              textAlign:  "center",
+            }}>
+              <div style={{
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize:   "0.65rem",
+                color:      "var(--gray-400)",
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+                marginBottom: "0.3rem",
+              }}>Match</div>
+              <div style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontWeight: 700,
+                fontSize:   "2.2rem",
+                color:      "var(--turquoise)",
+                lineHeight: 1,
+              }}>
+                {result.match.match_score}
+              </div>
+            </div>
+
+            {result.ats && (
+              <div style={{
+                border:     "2px solid var(--black)",
+                boxShadow:  "4px 4px 0px var(--black)",
+                padding:    "1rem",
+                background: "var(--white)",
+                textAlign:  "center",
+              }}>
+                <div style={{
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize:   "0.65rem",
+                  color:      "var(--gray-400)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  marginBottom: "0.3rem",
+                }}>ATS</div>
+                <div style={{
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  fontWeight: 700,
+                  fontSize:   "2.2rem",
+                  color:      result.ats.score >= 70 ? "var(--turquoise)" : result.ats.score >= 50 ? "var(--orange)" : "#c0392b",
+                  lineHeight: 1,
+                }}>
+                  {result.ats.score}
                 </div>
               </div>
-              <div className="rounded-lg border border-neutral-200 bg-white p-4 space-y-2">
-                <div className="text-xs text-neutral-400">💡 Suggestions</div>
-                {result.ats.suggestions.map((s: string, i: number) => (
-                  <div key={i} className="flex gap-2 text-sm text-neutral-700">
-                    <span className="text-neutral-300 shrink-0">{i + 1}.</span>
-                    <span>{s}</span>
-                  </div>
+            )}
+
+            <div style={{
+              border:     "2px solid var(--black)",
+              boxShadow:  "4px 4px 0px var(--black)",
+              padding:    "1rem",
+              background: "var(--black)",
+              display:    "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+            }}>
+              <div style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontWeight: 700,
+                fontSize:   "0.9rem",
+                color:      "var(--white)",
+                marginBottom: "0.3rem",
+              }}>
+                {result.match.cv_name}
+              </div>
+              <div style={{
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize:   "0.72rem",
+                color:      "#666",
+                lineHeight: 1.5,
+              }}>
+                {result.match.selection_reason}
+              </div>
+            </div>
+          </div>
+
+          {/* Onglets */}
+          {visibleTabs.length > 0 && (
+            <>
+              <div className="tab-bar">
+                {visibleTabs.map(t => (
+                  <button
+                    key={t.key}
+                    className={`tab ${activeTab === t.key ? "active" : ""}`}
+                    onClick={() => setActiveTab(t.key)}
+                  >
+                    {t.label}
+                  </button>
                 ))}
               </div>
-            </div>
-          )}
 
-          {activeTab === "cv" && result.cv_optimise_md && (
-            <MarkdownView content={result.cv_optimise_md} label="CV optimisé" />
-          )}
+              {/* Contenu onglet */}
+              <div className="animate-in">
 
-          {activeTab === "match" && (
-            <div className="rounded-lg border border-neutral-200 bg-white p-4 space-y-3">
-              <div>
-                <div className="text-xs text-neutral-400 mb-1">Mots-clés de l'offre</div>
-                <div className="flex flex-wrap gap-1">
-                  {result.match.job_keywords.map((k: string) => (
-                    <span key={k} className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full border border-blue-200">{k}</span>
-                  ))}
-                </div>
+                {activeTab === "lettre" && result.lettre_md && (
+                  <MarkdownView content={result.lettre_md} label="Lettre de motivation" />
+                )}
+
+                {activeTab === "ats" && result.ats && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                    <Card title="Score ATS" tag={`${result.ats.score}/100`} tagColor={result.ats.score >= 70 ? "turquoise" : "orange"}>
+                      <ScoreBar score={result.ats.score} />
+                      <p style={{
+                        marginTop:  "1rem",
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontSize:   "0.78rem",
+                        color:      "var(--gray-600)",
+                        lineHeight: 1.6,
+                      }}>
+                        {result.ats.summary}
+                      </p>
+                    </Card>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                      <Card title={`Mots-clés présents (${result.ats.keywords_found.length})`} tagColor="turquoise">
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                          {result.ats.keywords_found.map((k: string) => (
+                            <KeywordBadge key={k} word={k} variant="found" />
+                          ))}
+                        </div>
+                      </Card>
+                      <Card title={`Mots-clés manquants (${result.ats.keywords_missing.length})`} tagColor="orange">
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                          {result.ats.keywords_missing.map((k: string) => (
+                            <KeywordBadge key={k} word={k} variant="missing" />
+                          ))}
+                        </div>
+                      </Card>
+                    </div>
+
+                    <Card title="Suggestions d'amélioration">
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                        {result.ats.suggestions.map((s: string, i: number) => (
+                          <div key={i} style={{ display: "flex", gap: "0.75rem", alignItems: "flex-start" }}>
+                            <span style={{
+                              fontFamily:  "'IBM Plex Mono', monospace",
+                              fontSize:    "0.72rem",
+                              background:  "var(--orange)",
+                              color:       "var(--white)",
+                              padding:     "0.1rem 0.4rem",
+                              border:      "1.5px solid var(--black)",
+                              flexShrink:  0,
+                              marginTop:   "0.1rem",
+                            }}>
+                              {i + 1}
+                            </span>
+                            <span style={{
+                              fontFamily: "'Inter', sans-serif",
+                              fontSize:   "0.85rem",
+                              color:      "var(--black)",
+                              lineHeight: 1.6,
+                            }}>
+                              {s}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </Card>
+                  </div>
+                )}
+
+                {activeTab === "cv" && result.cv_optimise_md && (
+                  <MarkdownView content={result.cv_optimise_md} label="CV optimisé" />
+                )}
+
+                {activeTab === "match" && (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                    <Card title="Mots-clés de l'offre">
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                        {result.match.job_keywords.map((k: string) => (
+                          <KeywordBadge key={k} word={k} variant="neutral" />
+                        ))}
+                      </div>
+                    </Card>
+                    <Card title="Points forts du CV">
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                        {result.match.cv_keywords.map((k: string) => (
+                          <KeywordBadge key={k} word={k} variant="found" />
+                        ))}
+                      </div>
+                    </Card>
+                  </div>
+                )}
+
               </div>
-              <div>
-                <div className="text-xs text-neutral-400 mb-1">Points forts du CV</div>
-                <div className="flex flex-wrap gap-1">
-                  {result.match.cv_keywords.map((k: string) => (
-                    <span key={k} className="px-2 py-0.5 bg-neutral-100 text-neutral-700 text-xs rounded-full border border-neutral-200">{k}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
+            </>
           )}
 
         </div>

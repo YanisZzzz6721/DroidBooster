@@ -2,7 +2,18 @@
 
 import { useState } from "react"
 import { optimizeCV, type AtsResult, type MatchResult } from "@/lib/api"
+import PushButton from "@/components/PushButton"
+import Card from "@/components/Card"
+import ScoreBar from "@/components/ScoreBar"
+import KeywordBadge from "@/components/KeywordBadge"
 import MarkdownView from "@/components/MarkdownView"
+
+const ATS_TIPS = [
+  { icon: "◈", title: "Mots-clés exacts",   body: "Les ATS cherchent des termes identiques à l'offre. Un synonyme ne suffit pas — utilise les mots précis de l'annonce." },
+  { icon: "◎", title: "Pas de tableaux",     body: "Les colonnes et tableaux perturbent les scanners ATS. Privilégie un format texte linéaire et structuré." },
+  { icon: "⚡", title: "Score cible",        body: "Un score ATS supérieur à 70/100 augmente significativement tes chances d'être vu par un recruteur humain." },
+  { icon: "✦", title: "Sections claires",   body: "Nomme tes sections explicitement : Expériences, Compétences, Formation. Les ATS reconnaissent ces titres standards." },
+]
 
 export default function Optimize() {
   const [offerText,   setOfferText]   = useState("")
@@ -12,158 +23,374 @@ export default function Optimize() {
   const [match,       setMatch]       = useState<MatchResult | null>(null)
   const [ats,         setAts]         = useState<AtsResult | null>(null)
   const [cvMd,        setCvMd]        = useState("")
-  const [activeTab,   setActiveTab]   = useState<"ats" | "cv">("ats")
+  const [activeTab,   setActiveTab]   = useState("score")
 
   const handleSubmit = async () => {
-    if (!offerText.trim()) {
-      setError("Colle le texte de l'offre.")
-      return
-    }
+    if (!offerText.trim()) { setError("Colle le texte de l'offre."); return }
     setError("")
     setLoading(true)
-    setMatch(null)
-    setAts(null)
-    setCvMd("")
+    setMatch(null); setAts(null); setCvMd("")
     try {
       const data = await optimizeCV(offerText, preferences)
       setMatch(data.match)
       setAts(data.ats)
       setCvMd(data.cv_optimise_md)
-    } catch (e: any) {
-      setError(e.message)
+      setActiveTab("score")
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Erreur inconnue")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="space-y-8">
+    <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
 
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Optimiser un CV</h1>
-        <p className="text-sm text-neutral-500 mt-1">
-          Analyse ATS de ton CV face à une offre et génère une version optimisée.
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.3rem" }}>
+          <span style={{
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize:   "0.72rem",
+            background: "var(--turquoise)",
+            color:      "var(--white)",
+            padding:    "0.15rem 0.5rem",
+            border:     "1.5px solid var(--black)",
+          }}>ATS</span>
+        </div>
+        <h1 style={{ fontSize: "1.8rem", marginBottom: "0.3rem" }}>Optimiser un CV</h1>
+        <p style={{ color: "var(--gray-600)", fontSize: "0.88rem" }}>
+          Analyse la compatibilité de ton CV face à une offre et génère une version optimisée.
         </p>
       </div>
 
-      <div className="space-y-4">
+      {/* ── Layout 2 colonnes ──────────────────────────────────────────────── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", alignItems: "start" }}>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-neutral-700">Offre d'emploi</label>
-          <textarea
-            value={offerText}
-            onChange={e => setOfferText(e.target.value)}
-            placeholder="Colle le texte de l'offre ici..."
-            rows={6}
-            className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-          />
-        </div>
+        {/* ── Colonne gauche : formulaire ─────────────────────────────────── */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-neutral-700">
-            Préférences <span className="text-neutral-400 font-normal">(optionnel)</span>
-          </label>
-          <textarea
-            value={preferences}
-            onChange={e => setPreferences(e.target.value)}
-            placeholder="Ex : insiste sur la rigueur, mets en avant l'anglais..."
-            rows={2}
-            className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-          />
-        </div>
+          <Card title="Offre d'emploi" tag="ANALYSE" tagColor="turquoise">
+            <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
 
-        {error && (
-          <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
-            {error}
-          </div>
-        )}
-
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          className="w-full rounded-lg bg-blue-600 text-white font-medium text-sm py-2.5 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {loading ? "Analyse en cours..." : "Analyser"}
-        </button>
-
-      </div>
-
-      {ats && match && (
-        <div className="space-y-4">
-
-          <div className="flex items-center gap-4 p-4 rounded-lg bg-white border border-neutral-200">
-            <div className="text-center">
-              <div className={`text-3xl font-bold ${ats.score >= 70 ? "text-green-600" : ats.score >= 50 ? "text-yellow-600" : "text-red-600"}`}>
-                {ats.score}
+              <div>
+                <label className="label">Texte de l'offre</label>
+                <textarea
+                  className="input"
+                  value={offerText}
+                  onChange={e => setOfferText(e.target.value)}
+                  placeholder="Colle ici le texte complet de l'offre d'emploi..."
+                  rows={8}
+                />
               </div>
-              <div className="text-xs text-neutral-400">Score ATS</div>
-            </div>
-            <div className="h-10 w-px bg-neutral-200" />
-            <div className="flex-1">
-              <div className="text-sm font-medium">{match.cv_name}</div>
-              <div className="text-xs text-neutral-400 mt-0.5">{ats.summary}</div>
-            </div>
-          </div>
 
-          <div className="flex gap-1 border-b border-neutral-200">
-            {[
-              { key: "ats" as const, label: "Rapport ATS" },
-              { key: "cv" as const,  label: "CV optimisé"  },
-            ].map(t => (
-              <button
-                key={t.key}
-                onClick={() => setActiveTab(t.key)}
-                aria-pressed={activeTab === t.key}
-                className={`px-4 py-2 text-sm transition-colors border-b-2 -mb-px ${
-                  activeTab === t.key
-                    ? "border-blue-600 text-blue-600 font-medium"
-                    : "border-transparent text-neutral-500 hover:text-neutral-900"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-
-          {activeTab === "ats" && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg border border-neutral-200 bg-white p-4">
-                  <div className="text-xs text-neutral-400 mb-2">✅ Présents ({ats.keywords_found.length})</div>
-                  <div className="flex flex-wrap gap-1">
-                    {ats.keywords_found.map((k: string) => (
-                      <span key={k} className="px-2 py-0.5 bg-green-50 text-green-700 text-xs rounded-full border border-green-200">{k}</span>
-                    ))}
-                  </div>
-                </div>
-                <div className="rounded-lg border border-neutral-200 bg-white p-4">
-                  <div className="text-xs text-neutral-400 mb-2">❌ Manquants ({ats.keywords_missing.length})</div>
-                  <div className="flex flex-wrap gap-1">
-                    {ats.keywords_missing.map((k: string) => (
-                      <span key={k} className="px-2 py-0.5 bg-red-50 text-red-700 text-xs rounded-full border border-red-200">{k}</span>
-                    ))}
-                  </div>
-                </div>
+              <div>
+                <label className="label">
+                  Préférences{" "}
+                  <span style={{ color: "var(--gray-400)", textTransform: "none", letterSpacing: 0 }}>
+                    (optionnel)
+                  </span>
+                </label>
+                <textarea
+                  className="input"
+                  value={preferences}
+                  onChange={e => setPreferences(e.target.value)}
+                  placeholder="Ex : insiste sur la rigueur, mets en avant l'anglais..."
+                  rows={2}
+                />
               </div>
-              <div className="rounded-lg border border-neutral-200 bg-white p-4 space-y-2">
-                <div className="text-xs text-neutral-400">💡 Suggestions</div>
-                {ats.suggestions.map((s: string, i: number) => (
-                  <div key={i} className="flex gap-2 text-sm text-neutral-700">
-                    <span className="text-neutral-300 shrink-0">{i + 1}.</span>
-                    <span>{s}</span>
+
+              {error && (
+                <div style={{
+                  padding:    "0.75rem 1rem",
+                  border:     "2px solid #c0392b",
+                  background: "#fdf0f0",
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize:   "0.8rem",
+                  color:      "#c0392b",
+                  boxShadow:  "3px 3px 0px #c0392b",
+                }}>
+                  ✗ {error}
+                </div>
+              )}
+
+              <PushButton variant="primary" size="lg" fullWidth loading={loading} onClick={handleSubmit}>
+                {!loading && "◈ Analyser le CV"}
+              </PushButton>
+
+            </div>
+          </Card>
+
+          {/* Guide ATS — visible quand pas de résultats */}
+          {!ats && (
+            <Card title="Comment fonctionne l'ATS ?" tag="GUIDE" tagColor="turquoise">
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                {ATS_TIPS.map((tip, i) => (
+                  <div key={i} style={{ display: "flex", gap: "0.75rem", alignItems: "flex-start" }}>
+                    <span style={{
+                      fontFamily:  "'Space Grotesk', sans-serif",
+                      fontSize:    "1rem",
+                      color:       "var(--turquoise)",
+                      flexShrink:  0,
+                      marginTop:   "0.05rem",
+                    }}>
+                      {tip.icon}
+                    </span>
+                    <div>
+                      <div style={{
+                        fontFamily: "'Space Grotesk', sans-serif",
+                        fontWeight: 700,
+                        fontSize:   "0.82rem",
+                        color:      "var(--black)",
+                        marginBottom: "0.2rem",
+                      }}>
+                        {tip.title}
+                      </div>
+                      <div style={{
+                        fontFamily: "'Inter', sans-serif",
+                        fontSize:   "0.8rem",
+                        color:      "var(--gray-600)",
+                        lineHeight: 1.6,
+                      }}>
+                        {tip.body}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
+            </Card>
           )}
 
-          {activeTab === "cv" && cvMd && (
-            <MarkdownView content={cvMd} label="CV optimisé" />
+          {/* Score + keywords — sous le formulaire quand résultats */}
+          {ats && (
+            <Card title="Score ATS" tag={`${ats.score}/100`} tagColor={ats.score >= 70 ? "turquoise" : "orange"}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                <ScoreBar score={ats.score} />
+                <p style={{
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize:   "0.78rem",
+                  color:      "var(--gray-600)",
+                  lineHeight: 1.6,
+                }}>
+                  {ats.summary}
+                </p>
+                {match && (
+                  <div style={{
+                    padding:    "0.75rem",
+                    background: "#0D2137",
+                    border:     "2px solid var(--black)",
+                  }}>
+                    <div style={{
+                      fontFamily: "'IBM Plex Mono', monospace",
+                      fontSize:   "0.65rem",
+                      color:      "var(--turquoise)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.1em",
+                      marginBottom: "0.3rem",
+                    }}>CV sélectionné</div>
+                    <div style={{
+                      fontFamily: "'Space Grotesk', sans-serif",
+                      fontWeight: 700,
+                      fontSize:   "0.9rem",
+                      color:      "var(--white)",
+                    }}>
+                      {match.cv_name}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Card>
           )}
 
         </div>
-      )}
 
+        {/* ── Colonne droite : résultats ou stats ─────────────────────────── */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+
+          {/* Pas de résultats — stats visuelles */}
+          {!ats && (
+            <>
+              <Card title="Barème ATS" tag="INFO" tagColor="orange">
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                  {[
+                    { label: "Excellent",     min: 90, color: "var(--turquoise)" },
+                    { label: "Bon match",     min: 70, color: "var(--turquoise)" },
+                    { label: "Match partiel", min: 50, color: "var(--orange)"    },
+                    { label: "Match faible",  min: 0,  color: "#c0392b"          },
+                  ].map((row, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                      <div style={{
+                        width:      "10px",
+                        height:     "10px",
+                        background: row.color,
+                        border:     "1.5px solid var(--black)",
+                        flexShrink: 0,
+                      }} />
+                      <div style={{
+                        fontFamily: "'Space Grotesk', sans-serif",
+                        fontWeight: 600,
+                        fontSize:   "0.82rem",
+                        color:      "var(--black)",
+                        flex:       1,
+                      }}>
+                        {row.label}
+                      </div>
+                      <div style={{
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontSize:   "0.75rem",
+                        color:      row.color,
+                        fontWeight: 600,
+                      }}>
+                        {row.min === 90 ? "90-100" : row.min === 70 ? "70-89" : row.min === 50 ? "50-69" : "0-49"}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              <Card title="Checklist avant analyse" tag="TIPS" tagColor="orange">
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                  {[
+                    "Colle le texte complet de l'offre",
+                    "Inclus le descriptif ET les compétences requises",
+                    "Plus l'offre est détaillée, plus l'analyse est précise",
+                    "Ajoute des préférences pour personnaliser le résultat",
+                  ].map((item, i) => (
+                    <div key={i} style={{ display: "flex", gap: "0.6rem", alignItems: "flex-start" }}>
+                      <span style={{ color: "var(--orange)", fontSize: "0.8rem", marginTop: "0.1rem" }}>→</span>
+                      <span style={{
+                        fontFamily: "'Inter', sans-serif",
+                        fontSize:   "0.82rem",
+                        color:      "var(--gray-600)",
+                        lineHeight: 1.5,
+                      }}>
+                        {item}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              {/* Bloc décoratif */}
+              <div style={{
+                padding:    "1.5rem",
+                background: "#0D2137",
+                border:     "2px solid var(--black)",
+                boxShadow:  "4px 4px 0px var(--black)",
+              }}>
+                <div style={{
+                  fontFamily:    "'Space Grotesk', sans-serif",
+                  fontWeight:    700,
+                  fontSize:      "1.4rem",
+                  color:         "var(--white)",
+                  lineHeight:    1.2,
+                  marginBottom:  "0.75rem",
+                }}>
+                  70% des CV sont<br />
+                  <span style={{ color: "var(--orange)" }}>rejetés par les ATS</span><br />
+                  avant d'être lus.
+                </div>
+                <div style={{
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize:   "0.72rem",
+                  color:      "rgba(255,255,255,0.4)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                }}>
+                  Source : LinkedIn Talent Solutions
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Résultats */}
+          {ats && (
+            <>
+              {/* Onglets */}
+              <div className="tab-bar">
+                {[
+                  { key: "score",   label: "Mots-clés"   },
+                  { key: "suggest", label: "Suggestions"  },
+                  { key: "cv",      label: "CV optimisé"  },
+                ].map(t => (
+                  <button
+                    key={t.key}
+                    className={`tab ${activeTab === t.key ? "active" : ""}`}
+                    onClick={() => setActiveTab(t.key)}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
+              {activeTab === "score" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                  <Card title={`Présents (${ats.keywords_found.length})`} tagColor="turquoise">
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                      {ats.keywords_found.map((k: string) => (
+                        <KeywordBadge key={k} word={k} variant="found" />
+                      ))}
+                      {ats.keywords_found.length === 0 && (
+                        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.75rem", color: "var(--gray-400)" }}>
+                          Aucun mot-clé détecté
+                        </span>
+                      )}
+                    </div>
+                  </Card>
+                  <Card title={`Manquants (${ats.keywords_missing.length})`} tagColor="orange">
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                      {ats.keywords_missing.map((k: string) => (
+                        <KeywordBadge key={k} word={k} variant="missing" />
+                      ))}
+                      {ats.keywords_missing.length === 0 && (
+                        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.75rem", color: "var(--turquoise)" }}>
+                          ✓ Tous les mots-clés sont présents
+                        </span>
+                      )}
+                    </div>
+                  </Card>
+                </div>
+              )}
+
+              {activeTab === "suggest" && (
+                <Card title="Suggestions d'amélioration">
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                    {ats.suggestions.map((s: string, i: number) => (
+                      <div key={i} style={{ display: "flex", gap: "0.75rem", alignItems: "flex-start" }}>
+                        <span style={{
+                          fontFamily:  "'IBM Plex Mono', monospace",
+                          fontSize:    "0.72rem",
+                          background:  "var(--orange)",
+                          color:       "var(--white)",
+                          padding:     "0.1rem 0.4rem",
+                          border:      "1.5px solid var(--black)",
+                          flexShrink:  0,
+                          marginTop:   "0.1rem",
+                        }}>
+                          {i + 1}
+                        </span>
+                        <span style={{
+                          fontFamily: "'Inter', sans-serif",
+                          fontSize:   "0.84rem",
+                          color:      "var(--black)",
+                          lineHeight: 1.6,
+                        }}>
+                          {s}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+              {activeTab === "cv" && cvMd && (
+                <MarkdownView content={cvMd} label="CV optimisé" maxHeight="520px" />
+              )}
+            </>
+          )}
+
+        </div>
+      </div>
     </div>
   )
 }
