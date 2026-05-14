@@ -279,6 +279,66 @@ async def run(
     return response
 
 
+# ─── ATS Custom ──────────────────────────────────────────────────────────────────
+
+@app.post("/ats-custom")
+async def ats_custom(
+    offre_texte: str = Form(...),
+    cv_content:  str = Form(...),
+    preferences: str = Form(default=""),
+):
+    """
+    Analyse ATS avec un CV fourni directement en texte (Markdown).
+    Retourne le score, les mots-clés et le CV optimisé en Markdown.
+    """
+    if not offre_texte.strip():
+        raise HTTPException(status_code=400, detail="Le texte de l'offre est vide.")
+    if not cv_content.strip():
+        raise HTTPException(status_code=400, detail="Le contenu du CV est vide.")
+
+    try:
+        # On construit un match_result minimal avec le CV fourni
+        match_result = {
+            "cv_name":          "cv_custom",
+            "cv_content":       cv_content,
+            "match_score":      None,
+            "job_keywords":     [],
+            "cv_keywords":      [],
+            "selection_reason": "CV fourni manuellement",
+        }
+
+        if preferences.strip():
+            match_result["preferences_utilisateur"] = preferences.strip()
+
+        # Analyse ATS
+        analysis = analyze_ats(offre_texte, match_result)
+
+        # Génération du CV optimisé
+        cv_path, _ = generate_optimized_cv(offre_texte, match_result, analysis)
+        cv_optimise_md = cv_path.read_text(encoding="utf-8")
+
+        # Sauvegarde historique
+        save_candidature(
+            offre_texte    = offre_texte[:2000],
+            cv_nom         = "cv_custom",
+            ats_score      = analysis["score"],
+            cv_optimise_md = cv_optimise_md,
+            preferences    = preferences,
+        )
+
+        return {
+            "score":            analysis["score"],
+            "keywords_found":   analysis["keywords_found"],
+            "keywords_missing": analysis["keywords_missing"],
+            "suggestions":      analysis["suggestions"],
+            "summary":          analysis["summary"],
+            "cv_optimise_md":   cv_optimise_md,
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ─── Historique ──────────────────────────────────────────────────────────────────
 
 @app.get("/history")
