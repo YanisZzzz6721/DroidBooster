@@ -222,6 +222,7 @@ def generate_optimized_cv(offer: str, match_result: dict, analysis: dict, output
 
 Voici une offre d'emploi, un CV existant, et les résultats d'une analyse ATS.
 Ton rôle : réécrire le CV en Markdown optimisé pour maximiser le score ATS face à cette offre.
+Le CV généré doit tenir sur UNE SEULE PAGE A4 — c'est une contrainte absolue.
 
 === OFFRE D'EMPLOI ===
 {offer}
@@ -236,29 +237,35 @@ Suggestions d'amélioration :
 {suggestions}
 
 === INSTRUCTIONS ===
-Génère un CV complet et optimisé en Markdown avec ces règles :
+Génère un CV optimisé en Markdown avec ces règles :
 
-1. STRUCTURE en sections avec titres ## :
-   - En-tête (titre du profil adapté à l'offre)
-   - Objectif (2-3 phrases ciblées sur l'offre)
-   - Expériences (liste à puces avec détails concrets)
-   - Compétences (liste à puces regroupées par catégorie)
-   - Formation (diplômes, certifications)
+1. STRUCTURE FIXE en sections ## dans cet ordre :
+   - En-tête : Nom · Titre du profil adapté à l'offre · Coordonnées sur une ligne
+   - Profil : 2 phrases maximum, ciblées sur l'offre, percutantes
+   - Compétences : 5 à 7 lignes max, format "**Label** : valeur courte", pas de sous-catégories
+   - Expériences : 3 expériences maximum, les plus pertinentes pour l'offre uniquement
+   - Formation : liste courte, 1 ligne par entrée
 
-2. OPTIMISATION ATS :
-   - Intègre NATURELLEMENT tous les mots-clés manquants dans le texte
+2. CONTRAINTES DE LONGUEUR — non négociables :
+   - Profil : 2 phrases max
+   - Compétences : 5 à 7 entrées max, 1 ligne chacune
+   - Chaque expérience : titre + date sur 1 ligne, puis 3 bullets max
+   - Chaque bullet : 1 verbe d'action + fait concret, 12 mots maximum
+   - Formation : 1 ligne par diplôme, aucun détail superflu
+   - Volume total visé : 350 à 430 mots
+
+3. OPTIMISATION ATS :
+   - Intègre les mots-clés manquants naturellement dans les bullets et le profil
    - Conserve et renforce les mots-clés déjà présents
-   - Applique toutes les suggestions du rapport ATS
-   - Chaque point de la liste doit commencer par un verbe d'action
+   - Applique les suggestions du rapport ATS dans la limite des contraintes de longueur
+   - Priorité aux mots-clés manquants les plus fréquents dans l'offre
 
-3. CONTRAINTES :
-   - Reste fidèle aux vraies expériences du CV original (ne pas inventer)
-   - Formulations concises, professionnelles et percutantes
-   - Uniquement des listes à puces dans les sections Expériences et Compétences
-   - Pas de phrases longues dans les listes
+4. RÈGLES ABSOLUES :
+   - Ne jamais inventer une expérience, compétence ou diplôme absent du CV original
+   - Zéro phrase creuse, zéro remplissage, zéro répétition
+   - Si une suggestion dépasse la limite de longueur, l'ignorer
    - Réponds en français
-
-Génère uniquement le contenu Markdown du CV, sans commentaire ni explication."""
+   - Réponds uniquement avec le Markdown du CV, sans commentaire ni explication"""
 
     response = client.messages.create(
         model=MODEL,
