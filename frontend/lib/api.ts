@@ -1,94 +1,100 @@
-const API = process.env.NEXT_PUBLIC_API_URL
-
-export interface MatchResult {
-  cv_name:          string
-  cv_content:       string
-  match_score:      number
-  job_keywords:     string[]
-  cv_keywords:      string[]
-  selection_reason: string
-}
-
-export interface AtsResult {
-  score:            number
-  keywords_found:   string[]
-  keywords_missing: string[]
-  suggestions:      string[]
-  summary:          string
-}
-
-export interface RunResult {
-  match:           MatchResult
-  lettre_md?:      string
-  ats?:            AtsResult
-  cv_optimise_md?: string
-}
-
-export interface Candidature {
-  id:          number
-  created_at:  string
-  offre_titre: string | null
-  cv_nom:      string
-  match_score: number | null
-  ats_score:   number | null
-}
-
-export interface CandidatureDetail extends Candidature {
-  offre_texte:    string
-  lettre_md:      string | null
-  cv_optimise_md: string | null
-  preferences:    string | null
-}
-
-async function handleResponse<T>(res: Response): Promise<T> {
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+ 
+// ─── PIPELINE ────────────────────────────────────────────────────────────────────
+ 
+export async function runPipeline(
+  offerText:   string,
+  preferences: string,
+  mode:        string,
+  file?:       File,
+) {
+  const form = new FormData()
+  form.append("offre_texte", offerText)
+  form.append("preferences", preferences)
+  form.append("mode",        mode)
+  if (file) form.append("file", file)
+ 
+  const res = await fetch(`${API}/run`, { method: "POST", body: form })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: "Erreur inconnue" }))
     throw new Error(err.detail || `Erreur ${res.status}`)
   }
   return res.json()
 }
-
-export async function runPipeline(
-  offerText: string,
-  preferences: string,
-  mode: string,
-  file?: File | null,
-): Promise<RunResult> {
-  const form = new FormData()
-  if (file) {
-    form.append("file", file)
-  } else {
-    form.append("offre_texte", offerText)
-  }
-  form.append("preferences", preferences)
-  form.append("mode", mode)
-  const res = await fetch(`${API}/run`, { method: "POST", body: form })
-  return handleResponse<RunResult>(res)
-}
-
-export async function optimizeCV(
-  offerText: string,
-  preferences: string,
-): Promise<{ match: MatchResult; ats: AtsResult; cv_optimise_md: string }> {
+ 
+// ─── OPTIMISER ───────────────────────────────────────────────────────────────────
+ 
+export async function optimizeCV(offerText: string, cvContent: string, preferences: string) {
   const form = new FormData()
   form.append("offre_texte", offerText)
+  form.append("cv_content",  cvContent)
   form.append("preferences", preferences)
-  form.append("mode", "cv_only")
-  const res = await fetch(`${API}/run`, { method: "POST", body: form })
-  return handleResponse(res)
+ 
+  const res = await fetch(`${API}/ats-custom`, { method: "POST", body: form })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Erreur inconnue" }))
+    throw new Error(err.detail || `Erreur ${res.status}`)
+  }
+  return res.json()
 }
-
-export async function getHistory(limit = 20): Promise<Candidature[]> {
-  const res  = await fetch(`${API}/history?limit=${limit}`)
-  const data = await handleResponse<{ candidatures: Candidature[] }>(res)
-  return data.candidatures
+ 
+// ─── EXPORT CV → DOCX ────────────────────────────────────────────────────────────
+ 
+export async function exportDocx(cvMarkdown: string, templateFile: File): Promise<{ blob: Blob; filename: string }> {
+  const form = new FormData()
+  form.append("cv_markdown", cvMarkdown)
+  form.append("template",    templateFile)
+ 
+  const res = await fetch(`${API}/export-docx`, { method: "POST", body: form })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Erreur inconnue" }))
+    throw new Error(err.detail || `Erreur ${res.status}`)
+  }
+ 
+  const blob     = await res.blob()
+  const cd       = res.headers.get("content-disposition") || ""
+  const match    = cd.match(/filename="?([^"]+)"?/)
+  const filename = match?.[1] || "cv_export.docx"
+ 
+  return { blob, filename }
 }
-
-export async function getHistoryDetail(id: number): Promise<CandidatureDetail> {
+ 
+export async function getExportHistory(limit = 20) {
+  const res = await fetch(`${API}/export-history?limit=${limit}`)
+  if (!res.ok) throw new Error("Erreur chargement historique exports")
+  return res.json()
+}
+ 
+export async function deleteExport(id: number) {
+  const res = await fetch(`${API}/export-history/${id}`, { method: "DELETE" })
+  if (!res.ok) throw new Error("Erreur suppression export")
+  return res.json()
+}
+ 
+// ─── HISTORIQUE CANDIDATURES ─────────────────────────────────────────────────────
+ 
+export async function getHistory(limit = 20) {
+  const res = await fetch(`${API}/history?limit=${limit}`)
+  if (!res.ok) throw new Error("Erreur chargement historique")
+  return res.json()
+}
+ 
+export async function getHistoryDetail(id: number) {
   const res = await fetch(`${API}/history/${id}`)
-  return handleResponse<CandidatureDetail>(res)
+  if (!res.ok) throw new Error("Candidature introuvable")
+  return res.json()
 }
-
-export async function deleteHistory(id: number): Promise<void> {
-  await fetch(`${API}/history/${id}`, { method: "DELETE" })
+ 
+export async function deleteHistory(id: number) {
+  const res = await fetch(`${API}/history/${id}`, { method: "DELETE" })
+  if (!res.ok) throw new Error("Erreur suppression")
+  return res.json()
+}
+ 
+// ─── CVS ─────────────────────────────────────────────────────────────────────────
+ 
+export async function getCvs() {
+  const res = await fetch(`${API}/cvs`)
+  if (!res.ok) throw new Error("Erreur chargement CVs")
+  return res.json()
 }
