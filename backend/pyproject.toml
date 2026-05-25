@@ -1,7 +1,7 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
-
+ 
 [project]
 name = "airecruit"
 version = "0.1.0"
@@ -17,8 +17,7 @@ dependencies = [
     "uvicorn",
     "python-multipart",
 ]
+ 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-[project.scripts]
-airecruit = "airecruit.cli:app"
+ 
