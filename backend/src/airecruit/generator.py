@@ -15,28 +15,29 @@ def generate_letter(match_result: dict, offer: str) -> dict:
     """
     client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
-    prompt = f"""Rédige une lettre de motivation à partir des informations fournies.
+    prompt = f"""Tu es un expert en rédaction de lettres de motivation optimisées ATS.
 
-Style attendu : Écriture fluide, naturelle et humaine. Ton sérieux, motivé et professionnel, sans être scolaire ni rigide. Le texte doit être propre, maîtrisé, et aller droit au but.
+Rédige une lettre de motivation chirurgicale, dense et percutante.
 
-Contraintes :
-- Pas de listes
-- Pas de tirets
-- Pas de mots en gras
-- Pas de répétitions inutiles
-- Pas de phrases vides ou génériques
-- Chaque phrase doit être utile, précise et concrète
+=== RÈGLES ABSOLUES ===
 
-Structure :
-- Introduction claire avec le poste et l'entreprise
-- Un développement centré sur les expériences les plus pertinentes
-- Un second développement sur les qualités personnelles en lien avec le poste
-- Une conclusion simple avec disponibilité et ouverture à un entretien
+LONGUEUR : 3 paragraphes stricts, 3 à 4 phrases maximum par paragraphe.
+Chaque phrase doit porter une information utile — zéro phrase de remplissage.
 
-Style rédactionnel :
-- Phrases fluides, bien construites, vocabulaire professionnel mais naturel
-- Éviter les tournures trop classiques ou robotiques
-- Garder un ton crédible et humain
+FORMAT : Aucune liste, aucun tiret, aucun gras. Prose uniquement.
+
+STYLE : Ton professionnel, direct, humain. Pas scolaire, pas robotique.
+Chaque phrase commence différemment — pas de répétition de structure.
+
+ATS — CONTRAINTE CRITIQUE :
+Intègre naturellement un maximum de mots-clés de l'offre dans le texte.
+Les mots-clés doivent apparaître dans leur forme exacte (pas de synonymes).
+Priorité aux mots-clés les plus fréquents dans l'offre.
+
+STRUCTURE :
+§1 — Introduction : poste visé + accroche directe sur l'expérience la plus pertinente
+§2 — Expériences : 2 expériences max, faits concrets, mots-clés ATS intégrés
+§3 — Conclusion : valeur ajoutée + disponibilité + ouverture entretien (2 phrases max)
 
 === OFFRE D'EMPLOI ===
 {offer}
@@ -44,7 +45,7 @@ Style rédactionnel :
 === CV SÉLECTIONNÉ : {match_result['cv_name']} ===
 {match_result['cv_content']}
 
-=== MOTS CLÉS DE L'OFFRE ===
+=== MOTS-CLÉS ATS À INTÉGRER EN PRIORITÉ ===
 {', '.join(match_result['job_keywords'])}
 
 === POINTS FORTS DU CV ===
@@ -53,7 +54,7 @@ Style rédactionnel :
 === RAISON DU MATCH ===
 {match_result['selection_reason']}
 
-Rédige uniquement le corps de la lettre — pas de formule d'appel, pas de signature, pas de mise en forme. Juste les paragraphes."""
+Réponds uniquement avec les 3 paragraphes — pas de formule d'appel, pas de signature, pas de titre."""
 
     response = client.messages.create(
         model="claude-sonnet-4-5",

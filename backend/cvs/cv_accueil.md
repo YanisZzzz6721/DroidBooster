@@ -1,8 +1,10 @@
 # Yanis Zouggagh
 **Hôte d'accueil — Relation client & Service voyageurs**
+//Le nom et prenom
 
 ## Objectif
 Étudiant ingénieur à l'INSA Strasbourg, disponible immédiatement pour un poste d'hôte d'accueil ou d'agent d'accueil. Expérience directe en accueil de voyageurs à la SNCF, aisance relationnelle confirmée en français et en anglais (C1 Cambridge), présentation soignée et sens du service développé sur plusieurs postes en contact client.
+// PROFIL et Objectif 
 
 ## Expériences
 

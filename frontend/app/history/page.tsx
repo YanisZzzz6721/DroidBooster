@@ -50,7 +50,7 @@ export default function History() {
   const [tab,      setTab]      = useState<string>("ats")
 
   useEffect(() => {
-    getHistory().then(setList).finally(() => setLoading(false))
+    getHistory().then(data => setList(data.candidatures ?? data)).finally(() => setLoading(false))
   }, [])
 
   const open = async (id: number): Promise<void> => {

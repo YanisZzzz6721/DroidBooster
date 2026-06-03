@@ -218,11 +218,10 @@ def generate_optimized_cv(offer: str, match_result: dict, analysis: dict, output
     suggestions      = "\n".join(f"- {s}" for s in analysis.get("suggestions", []))
     score_actuel     = analysis.get("score", "?")
 
-    prompt = f"""Tu es un expert en rédaction de CV et en optimisation ATS.
+    prompt = fprompt = f"""Tu es un expert en rédaction de CV et en optimisation ATS (Applicant Tracking Systems), spécialisé dans la rédaction percutante orientée résultats.
 
 Voici une offre d'emploi, un CV existant, et les résultats d'une analyse ATS.
-Ton rôle : réécrire le CV en Markdown optimisé pour maximiser le score ATS face à cette offre.
-Le CV généré doit tenir sur UNE SEULE PAGE A4 — c'est une contrainte absolue.
+Ton rôle : réécrire intégralement le CV en Markdown optimisé pour maximiser le score ATS face à cette offre.
 
 === OFFRE D'EMPLOI ===
 {offer}
@@ -232,41 +231,78 @@ Le CV généré doit tenir sur UNE SEULE PAGE A4 — c'est une contrainte absolu
 
 === RAPPORT ATS (score actuel : {score_actuel}/100) ===
 Mots-clés déjà présents : {keywords_found}
-Mots-clés MANQUANTS à intégrer : {keywords_missing}
+Mots-clés MANQUANTS à intégrer absolument : {keywords_missing}
 Suggestions d'amélioration :
 {suggestions}
 
 === INSTRUCTIONS ===
-Génère un CV optimisé en Markdown avec ces règles :
 
-1. STRUCTURE FIXE en sections ## dans cet ordre :
-   - En-tête : Nom · Titre du profil adapté à l'offre · Coordonnées sur une ligne
-   - Profil : 2 phrases maximum, ciblées sur l'offre, percutantes
-   - Compétences : 5 à 7 lignes max, format "**Label** : valeur courte", pas de sous-catégories
-   - Expériences : 3 expériences maximum, les plus pertinentes pour l'offre uniquement
-   - Formation : liste courte, 1 ligne par entrée
+1. STRUCTURE FIXE — en-tête OBLIGATOIRE sur 2 lignes séparées :
+   # Prénom NOM
+   **Titre du poste adapté à l'offre**
 
-2. CONTRAINTES DE LONGUEUR — non négociables :
-   - Profil : 2 phrases max
-   - Compétences : 5 à 7 entrées max, 1 ligne chacune
-   - Chaque expérience : titre + date sur 1 ligne, puis 3 bullets max
-   - Chaque bullet : 1 verbe d'action + fait concret, 12 mots maximum
-   - Formation : 1 ligne par diplôme, aucun détail superflu
-   - Volume total visé : 350 à 430 mots
+   Puis sections ## dans cet ordre :
+   ## Profil
+   ## Compétences
+   ## Expériences
+   ## Formation
 
-3. OPTIMISATION ATS :
-   - Intègre les mots-clés manquants naturellement dans les bullets et le profil
+   ⚠ INTERDIT : écrire # Prénom NOM — Titre sur une seule ligne
+
+2. NOMBRE D'ÉLÉMENTS — CONTRAINTE ABSOLUE :
+   - Compétences    : EXACTEMENT 7 entrées, ni plus ni moins
+   - Expériences    : EXACTEMENT le nombre d'expériences présentes dans le CV original (max 4)
+     → Ne jamais inventer une expérience absente du CV original
+   - Bullets/expérience : EXACTEMENT 4 bullets par expérience, ni plus ni moins
+   - Formation      : 1 ligne par diplôme, ordre chronologique inversé
+   - Profil         : EXACTEMENT 3 phrases, pas une de plus :
+     1. Statut + disponibilité ("En année sabbatique, disponible immédiatement à temps plein.")
+     2. Compétences clés du poste en une phrase dense avec mots-clés ATS
+     3. Un différenciateur concret (langue, certification, compétence rare)
+     → Zéro générique ("dynamique", "motivé", "passionné")
+     → Zéro répétition entre les 3 phrases
+
+3. FORMAT STRICT — respecter ces formats ligne à ligne :
+   Compétences → **Label (3 mots max)** : description
+   Règles description compétence :
+   - Maximum 60 caractères par description (75 exceptionnellement pour 1 ou 2 max)
+   - Peut être une phrase complète courte et percutante
+   - Vise ce qui frappe au premier regard : capacité rare, savoir-faire concret,
+     différenciateur réel par rapport aux autres candidats
+   - Priorité aux compétences les plus valorisées dans l'offre
+   - Jamais de générique ("bonne communication", "dynamique", "motivé")
+   - Exemples de niveau attendu :
+     **Accueil multilingue** : Orientation voyageurs en français et anglais, flux dense
+     **Gestion de crise** : Résolution autonome d'incidents clients sous pression
+     **Rigueur procédurale** : Application stricte des protocoles SNCF et traçabilité
+   - Expériences : TOUJOURS dans l'ordre chronologique inversé (la plus récente en premier)
+         → Ne jamais réorganiser selon la pertinence
+
+   Expérience  → ### Intitulé du poste — Entreprise, Ville
+                  Mois AAAA – Mois AAAA
+                  - Bullet 1
+                  - Bullet 2
+                  - Bullet 3
+                  - Bullet 4
+   Formation   → ### Diplôme — Institution
+                  AAAA ou AAAA – présent
+
+4. RÉDACTION :
+   - Chaque bullet commence par un verbe d'action nominalisé sans conjugaison
+     Ex : "Accueil de", "Gestion de", "Coordination de", "Traitement de"
+   - 1 verbe d'action + fait concret + résultat chiffré si possible
+   - 12 mots maximum par bullet — sans exception
+   - Zéro phrase creuse, zéro remplissage, zéro répétition entre bullets
+
+5. OPTIMISATION ATS :
+   - Intègre tous les mots-clés MANQUANTS naturellement dans bullets et profil
    - Conserve et renforce les mots-clés déjà présents
-   - Applique les suggestions du rapport ATS dans la limite des contraintes de longueur
-   - Priorité aux mots-clés manquants les plus fréquents dans l'offre
+   - Priorité aux mots-clés les plus fréquents dans l'offre
 
-4. RÈGLES ABSOLUES :
+6. CONTRAINTES ABSOLUES :
    - Ne jamais inventer une expérience, compétence ou diplôme absent du CV original
-   - Zéro phrase creuse, zéro remplissage, zéro répétition
-   - Si une suggestion dépasse la limite de longueur, l'ignorer
-   - Réponds en français
-   - Réponds uniquement avec le Markdown du CV, sans commentaire ni explication"""
-
+   - Répondre uniquement en français
+   - Répondre uniquement avec le Markdown brut du CV, sans commentaire ni balise de code"""
     response = client.messages.create(
         model=MODEL,
         max_tokens=2000,

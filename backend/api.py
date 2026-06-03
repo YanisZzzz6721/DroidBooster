@@ -20,6 +20,8 @@ Endpoints :
     GET  /export-history/{id}/download  ← NOUVEAU
     DELETE /export-history/{id}     ← NOUVEAU
 """
+
+
  
 import os
 import re
@@ -186,6 +188,7 @@ def generate(body: GenerateRequest):
         "lettre_md": result["corps"],
         "md_path":   result["md_path"],
         "docx_path": result["docx_path"],
+        
     }
  
  
@@ -229,6 +232,7 @@ async def run(
         if mode in ("full", "letter_only"):
             letter = generate_letter(match_result, offer_text)
             response["lettre_md"] = letter["corps"]
+            response["docx_path"]   = letter["docx_path"]
  
         if mode in ("full", "cv_only"):
             analysis       = analyze_ats(offer_text, match_result)
@@ -327,8 +331,9 @@ def history_delete(candidature_id: int):
  
 @app.post("/export-docx")
 async def export_docx(
-    cv_markdown: str        = Form(..., description="CV en Markdown"),
-    template:    UploadFile = File(...,  description="Template .docx personnel"),
+    cv_markdown:  str        = Form(..., description="CV en Markdown"),
+    template:     UploadFile = File(...,  description="Template .docx personnel"),
+    lieu:         str        = Form(default="", description="Nom du lieu / entreprise"),
 ):
     """
     Reçoit un CV en Markdown + un template .docx.
@@ -355,7 +360,9 @@ async def export_docx(
         titre_safe = cv_dict.get("titre", "cv")
         titre_safe = titre_safe.replace(" ", "_").replace("—", "").replace("–", "").lower()
         titre_safe = re.sub(r"[^a-z0-9_]", "", titre_safe).strip("_")
-        docx_name  = f"cv_{titre_safe}.docx"
+        lieu_safe = lieu.strip().replace(" ", "_").lower()
+        lieu_safe = re.sub(r"[^a-z0-9_]", "", lieu_safe).strip("_")
+        docx_name = f"cv_{titre_safe}_{lieu_safe}.docx" if lieu_safe else f"cv_{titre_safe}.docx"
         docx_path  = EXPORT_OUT_DIR / docx_name
  
         # Génération du DOCX
@@ -401,6 +408,18 @@ def export_download(export_id: int):
         path       = entry["docx_path"],
         filename   = Path(entry["docx_path"]).name,
         media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
+
+@app.get("/download-lettre/{filename}")
+def download_lettre(filename: str):
+    """Télécharge une lettre générée en DOCX."""
+    path = Path(__file__).parent / "output" / filename
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Fichier introuvable.")
+    return FileResponse(
+        path=str(path),
+        filename=filename,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     )
  
  

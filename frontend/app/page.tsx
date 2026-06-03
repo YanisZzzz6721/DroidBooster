@@ -1,5 +1,5 @@
 "use client"
-
+ 
 import { useState, useRef } from "react"
 import { runPipeline, type RunResult } from "@/lib/api"
 import PushButton from "@/components/PushButton"
@@ -7,24 +7,26 @@ import Card from "@/components/Card"
 import ScoreBar from "@/components/ScoreBar"
 import KeywordBadge from "@/components/KeywordBadge"
 import MarkdownView from "@/components/MarkdownView"
-
+ 
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+ 
 // ─── Constantes ───────────────────────────────────────────────────────────────
-
+ 
 const MODES = [
   { value: "full",         label: "Pipeline complet", desc: "Lettre + ATS + CV"     },
   { value: "letter_only",  label: "Lettre seulement", desc: "Génère la lettre seule" },
   { value: "cv_only",      label: "CV optimisé",      desc: "Analyse ATS + CV"       },
 ]
-
+ 
 const TABS = [
   { key: "lettre", label: "Lettre"      },
   { key: "ats",    label: "Rapport ATS" },
   { key: "cv",     label: "CV optimisé" },
   { key: "match",  label: "Match"       },
 ]
-
+ 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-
+ 
 export default function Home() {
   const [offerText,   setOfferText]   = useState("")
   const [preferences, setPreferences] = useState("")
@@ -35,7 +37,7 @@ export default function Home() {
   const [result,      setResult]      = useState<RunResult | null>(null)
   const [activeTab,   setActiveTab]   = useState("lettre")
   const fileRef = useRef<HTMLInputElement>(null)
-
+ 
   const handleSubmit = async () => {
     if (!offerText.trim() && !file) {
       setError("Colle le texte de l'offre ou uploade un fichier.")
@@ -54,7 +56,7 @@ export default function Home() {
       setLoading(false)
     }
   }
-
+ 
   const visibleTabs = TABS.filter(t => {
     if (t.key === "lettre") return !!result?.lettre_md
     if (t.key === "ats")    return !!result?.ats
@@ -62,10 +64,15 @@ export default function Home() {
     if (t.key === "match")  return !!result?.match
     return false
   })
-
+ 
+  // Extrait le nom du fichier depuis le chemin retourné par le backend
+  const lettreDocxFilename = result?.docx_path
+    ? result.docx_path.split("/").pop()
+    : null
+ 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
-
+ 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.3rem" }}>
@@ -85,12 +92,11 @@ export default function Home() {
           Dépose une offre d'emploi, configure tes préférences et lance le pipeline.
         </p>
       </div>
-
+ 
       {/* ── Formulaire ─────────────────────────────────────────────────────── */}
       <Card title="Offre d'emploi" tag="ÉTAPE 1" tagColor="turquoise">
-
         <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-
+ 
           {/* Textarea offre */}
           <div>
             <label className="label">Texte de l'offre</label>
@@ -106,14 +112,14 @@ export default function Home() {
               <button
                 onClick={() => fileRef.current?.click()}
                 style={{
-                  fontFamily:  "'IBM Plex Mono', monospace",
-                  fontSize:    "0.75rem",
-                  color:       "var(--turquoise)",
-                  background:  "transparent",
-                  border:      "none",
-                  cursor:      "pointer",
+                  fontFamily:     "'IBM Plex Mono', monospace",
+                  fontSize:       "0.75rem",
+                  color:          "var(--turquoise)",
+                  background:     "transparent",
+                  border:         "none",
+                  cursor:         "pointer",
                   textDecoration: "underline",
-                  padding:     0,
+                  padding:        0,
                 }}
               >
                 {file ? `📄 ${file.name}` : "Uploader un PDF"}
@@ -143,7 +149,7 @@ export default function Home() {
               />
             </div>
           </div>
-
+ 
           {/* Préférences */}
           <div>
             <label className="label">
@@ -160,7 +166,7 @@ export default function Home() {
               rows={2}
             />
           </div>
-
+ 
           {/* Mode */}
           <div>
             <label className="label">Mode</label>
@@ -170,20 +176,20 @@ export default function Home() {
                   key={m.value}
                   onClick={() => setMode(m.value)}
                   style={{
-                    padding:     "0.75rem",
-                    textAlign:   "left",
-                    cursor:      "pointer",
-                    border:      mode === m.value ? "2px solid var(--black)" : "2px solid var(--gray-200)",
-                    background:  mode === m.value ? "var(--black)" : "var(--white)",
-                    boxShadow:   mode === m.value ? "3px 3px 0px var(--orange)" : "none",
-                    transition:  "all 0.1s ease",
+                    padding:    "0.75rem",
+                    textAlign:  "left",
+                    cursor:     "pointer",
+                    border:     mode === m.value ? "2px solid var(--black)" : "2px solid var(--gray-200)",
+                    background: mode === m.value ? "var(--black)" : "var(--white)",
+                    boxShadow:  mode === m.value ? "3px 3px 0px var(--orange)" : "none",
+                    transition: "all 0.1s ease",
                   }}
                 >
                   <div style={{
-                    fontFamily: "'Space Grotesk', sans-serif",
-                    fontWeight: 700,
-                    fontSize:   "0.82rem",
-                    color:      mode === m.value ? "var(--white)" : "var(--black)",
+                    fontFamily:   "'Space Grotesk', sans-serif",
+                    fontWeight:   700,
+                    fontSize:     "0.82rem",
+                    color:        mode === m.value ? "var(--white)" : "var(--black)",
                     marginBottom: "0.2rem",
                   }}>
                     {m.label}
@@ -191,7 +197,7 @@ export default function Home() {
                   <div style={{
                     fontFamily: "'IBM Plex Mono', monospace",
                     fontSize:   "0.68rem",
-                    color:      mode === m.value ? "var(--gray-400)" : "var(--gray-400)",
+                    color:      "var(--gray-400)",
                   }}>
                     {m.desc}
                   </div>
@@ -199,7 +205,7 @@ export default function Home() {
               ))}
             </div>
           </div>
-
+ 
           {/* Erreur */}
           {error && (
             <div style={{
@@ -214,114 +220,63 @@ export default function Home() {
               ✗ {error}
             </div>
           )}
-
+ 
           {/* Submit */}
-          <PushButton
-            variant="primary"
-            size="lg"
-            fullWidth
-            loading={loading}
-            onClick={handleSubmit}
-          >
+          <PushButton variant="primary" size="lg" fullWidth loading={loading} onClick={handleSubmit}>
             {!loading && "⚡ Lancer le pipeline"}
           </PushButton>
-
+ 
         </div>
       </Card>
-
+ 
       {/* ── Résultats ──────────────────────────────────────────────────────── */}
       {result && (
         <div className="animate-in" style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-
+ 
           {/* Score summary */}
           <div style={{
-            display:   "grid",
+            display: "grid",
             gridTemplateColumns: result.ats ? "1fr 1fr 2fr" : "1fr 3fr",
-            gap:       "1rem",
+            gap: "1rem",
           }}>
             <div style={{
-              border:     "2px solid var(--black)",
-              boxShadow:  "4px 4px 0px var(--black)",
-              padding:    "1rem",
-              background: "var(--white)",
-              textAlign:  "center",
+              border: "2px solid var(--black)", boxShadow: "4px 4px 0px var(--black)",
+              padding: "1rem", background: "var(--white)", textAlign: "center",
             }}>
-              <div style={{
-                fontFamily: "'IBM Plex Mono', monospace",
-                fontSize:   "0.65rem",
-                color:      "var(--gray-400)",
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
-                marginBottom: "0.3rem",
-              }}>Match</div>
-              <div style={{
-                fontFamily: "'Space Grotesk', sans-serif",
-                fontWeight: 700,
-                fontSize:   "2.2rem",
-                color:      "var(--turquoise)",
-                lineHeight: 1,
-              }}>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.65rem", color: "var(--gray-400)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.3rem" }}>Match</div>
+              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "2.2rem", color: "var(--turquoise)", lineHeight: 1 }}>
                 {result.match.match_score}
               </div>
             </div>
-
+ 
             {result.ats && (
               <div style={{
-                border:     "2px solid var(--black)",
-                boxShadow:  "4px 4px 0px var(--black)",
-                padding:    "1rem",
-                background: "var(--white)",
-                textAlign:  "center",
+                border: "2px solid var(--black)", boxShadow: "4px 4px 0px var(--black)",
+                padding: "1rem", background: "var(--white)", textAlign: "center",
               }}>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.65rem", color: "var(--gray-400)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.3rem" }}>ATS</div>
                 <div style={{
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  fontSize:   "0.65rem",
-                  color:      "var(--gray-400)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  marginBottom: "0.3rem",
-                }}>ATS</div>
-                <div style={{
-                  fontFamily: "'Space Grotesk', sans-serif",
-                  fontWeight: 700,
-                  fontSize:   "2.2rem",
-                  color:      result.ats.score >= 70 ? "var(--turquoise)" : result.ats.score >= 50 ? "var(--orange)" : "#c0392b",
-                  lineHeight: 1,
+                  fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "2.2rem", lineHeight: 1,
+                  color: result.ats.score >= 70 ? "var(--turquoise)" : result.ats.score >= 50 ? "var(--orange)" : "#c0392b",
                 }}>
                   {result.ats.score}
                 </div>
               </div>
             )}
-
+ 
             <div style={{
-              border:     "2px solid var(--black)",
-              boxShadow:  "4px 4px 0px var(--black)",
-              padding:    "1rem",
-              background: "var(--black)",
-              display:    "flex",
-              flexDirection: "column",
-              justifyContent: "center",
+              border: "2px solid var(--black)", boxShadow: "4px 4px 0px var(--black)",
+              padding: "1rem", background: "var(--black)", display: "flex", flexDirection: "column", justifyContent: "center",
             }}>
-              <div style={{
-                fontFamily: "'Space Grotesk', sans-serif",
-                fontWeight: 700,
-                fontSize:   "0.9rem",
-                color:      "var(--white)",
-                marginBottom: "0.3rem",
-              }}>
+              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "0.9rem", color: "var(--white)", marginBottom: "0.3rem" }}>
                 {result.match.cv_name}
               </div>
-              <div style={{
-                fontFamily: "'IBM Plex Mono', monospace",
-                fontSize:   "0.72rem",
-                color:      "#666",
-                lineHeight: 1.5,
-              }}>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", color: "#666", lineHeight: 1.5 }}>
                 {result.match.selection_reason}
               </div>
             </div>
           </div>
-
+ 
           {/* Onglets */}
           {visibleTabs.length > 0 && (
             <>
@@ -336,68 +291,59 @@ export default function Home() {
                   </button>
                 ))}
               </div>
-
-              {/* Contenu onglet */}
+ 
               <div className="animate-in">
-
+ 
+                {/* ── LETTRE ── */}
                 {activeTab === "lettre" && result.lettre_md && (
-                  <MarkdownView content={result.lettre_md} label="Lettre de motivation" />
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                    {lettreDocxFilename && (
+                      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                        <a
+                          href={`${API}/download-lettre/${lettreDocxFilename}`}
+                          className="btn-primary btn-sm"
+                          style={{ textDecoration: "none" }}
+                          download
+                        >
+                          ↓ Télécharger la lettre (.docx)
+                        </a>
+                      </div>
+                    )}
+                    <MarkdownView content={result.lettre_md} label="Lettre de motivation" />
+                  </div>
                 )}
-
+ 
+                {/* ── ATS ── */}
                 {activeTab === "ats" && result.ats && (
                   <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                     <Card title="Score ATS" tag={`${result.ats.score}/100`} tagColor={result.ats.score >= 70 ? "turquoise" : "orange"}>
                       <ScoreBar score={result.ats.score} />
-                      <p style={{
-                        marginTop:  "1rem",
-                        fontFamily: "'IBM Plex Mono', monospace",
-                        fontSize:   "0.78rem",
-                        color:      "var(--gray-600)",
-                        lineHeight: 1.6,
-                      }}>
+                      <p style={{ marginTop: "1rem", fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.78rem", color: "var(--gray-600)", lineHeight: 1.6 }}>
                         {result.ats.summary}
                       </p>
                     </Card>
-
+ 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                       <Card title={`Mots-clés présents (${result.ats.keywords_found.length})`} tagColor="turquoise">
                         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-                          {result.ats.keywords_found.map((k: string) => (
-                            <KeywordBadge key={k} word={k} variant="found" />
-                          ))}
+                          {result.ats.keywords_found.map((k: string) => <KeywordBadge key={k} word={k} variant="found" />)}
                         </div>
                       </Card>
                       <Card title={`Mots-clés manquants (${result.ats.keywords_missing.length})`} tagColor="orange">
                         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-                          {result.ats.keywords_missing.map((k: string) => (
-                            <KeywordBadge key={k} word={k} variant="missing" />
-                          ))}
+                          {result.ats.keywords_missing.map((k: string) => <KeywordBadge key={k} word={k} variant="missing" />)}
                         </div>
                       </Card>
                     </div>
-
+ 
                     <Card title="Suggestions d'amélioration">
                       <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                         {result.ats.suggestions.map((s: string, i: number) => (
                           <div key={i} style={{ display: "flex", gap: "0.75rem", alignItems: "flex-start" }}>
-                            <span style={{
-                              fontFamily:  "'IBM Plex Mono', monospace",
-                              fontSize:    "0.72rem",
-                              background:  "var(--orange)",
-                              color:       "var(--white)",
-                              padding:     "0.1rem 0.4rem",
-                              border:      "1.5px solid var(--black)",
-                              flexShrink:  0,
-                              marginTop:   "0.1rem",
-                            }}>
+                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", background: "var(--orange)", color: "var(--white)", padding: "0.1rem 0.4rem", border: "1.5px solid var(--black)", flexShrink: 0, marginTop: "0.1rem" }}>
                               {i + 1}
                             </span>
-                            <span style={{
-                              fontFamily: "'Inter', sans-serif",
-                              fontSize:   "0.85rem",
-                              color:      "var(--black)",
-                              lineHeight: 1.6,
-                            }}>
+                            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: "0.85rem", color: "var(--black)", lineHeight: 1.6 }}>
                               {s}
                             </span>
                           </div>
@@ -406,37 +352,36 @@ export default function Home() {
                     </Card>
                   </div>
                 )}
-
+ 
+                {/* ── CV ── */}
                 {activeTab === "cv" && result.cv_optimise_md && (
                   <MarkdownView content={result.cv_optimise_md} label="CV optimisé" />
                 )}
-
+ 
+                {/* ── MATCH ── */}
                 {activeTab === "match" && (
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                     <Card title="Mots-clés de l'offre">
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-                        {result.match.job_keywords.map((k: string) => (
-                          <KeywordBadge key={k} word={k} variant="neutral" />
-                        ))}
+                        {result.match.job_keywords.map((k: string) => <KeywordBadge key={k} word={k} variant="neutral" />)}
                       </div>
                     </Card>
                     <Card title="Points forts du CV">
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-                        {result.match.cv_keywords.map((k: string) => (
-                          <KeywordBadge key={k} word={k} variant="found" />
-                        ))}
+                        {result.match.cv_keywords.map((k: string) => <KeywordBadge key={k} word={k} variant="found" />)}
                       </div>
                     </Card>
                   </div>
                 )}
-
+ 
               </div>
             </>
           )}
-
+ 
         </div>
       )}
-
+ 
     </div>
   )
 }
+ 

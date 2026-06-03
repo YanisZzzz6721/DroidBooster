@@ -24,11 +24,11 @@ export default function ExportPage() {
   const [downloadName,  setDownloadName]  = useState("")
   const [history,       setHistory]       = useState<ExportEntry[]>([])
   const [historyLoaded, setHistoryLoaded] = useState(false)
+  const [lieu,          setLieu]          = useState("")
  
   const mdInputRef  = useRef<HTMLInputElement>(null)
   const tplInputRef = useRef<HTMLInputElement>(null)
  
-  // ── Import fichier .md
   function handleMdFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -37,15 +37,20 @@ export default function ExportPage() {
     reader.readAsText(file)
   }
  
-  // ── Upload template
   function handleTemplateFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     setTemplateFile(file)
     setTemplateName(file.name)
   }
+
+  function buildFilename(): string {
+    const titre = cvMarkdown.match(/^\*\*(.+?)\*\*/m)?.[1] || "cv"
+    const titreSafe = titre.replace(/[^a-z0-9]/gi, "_").toLowerCase()
+    const lieuSafe  = lieu.trim().replace(/[^a-z0-9]/gi, "_").toLowerCase()
+    return lieuSafe ? `cv_${titreSafe}_${lieuSafe}.docx` : `cv_${titreSafe}.docx`
+  }
  
-  // ── Conversion
   async function handleExport() {
     setError("")
     setDownloadUrl("")
@@ -58,6 +63,7 @@ export default function ExportPage() {
       const form = new FormData()
       form.append("cv_markdown", cvMarkdown)
       form.append("template",    templateFile)
+      form.append("lieu",        lieu.trim())
  
       const res = await fetch(`${API}/export-docx`, { method: "POST", body: form })
  
@@ -68,14 +74,19 @@ export default function ExportPage() {
  
       const blob     = await res.blob()
       const url      = URL.createObjectURL(blob)
-      const cd       = res.headers.get("content-disposition") || ""
-      const match    = cd.match(/filename="?([^"]+)"?/)
-      const filename = match?.[1] || "cv_export.docx"
+      const filename = buildFilename()
  
-      setDownloadUrl(url)
-      setDownloadName(filename)
+      // Téléchargement automatique immédiat
+        const a = document.createElement("a")
+        a.href = url
+        a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+
+        setDownloadUrl(url)
+        setDownloadName(filename)
  
-      // Rafraîchit l'historique si déjà chargé
       if (historyLoaded) loadHistory()
  
     } catch (err: any) {
@@ -85,7 +96,6 @@ export default function ExportPage() {
     }
   }
  
-  // ── Historique
   async function loadHistory() {
     try {
       const res  = await fetch(`${API}/export-history`)
@@ -178,6 +188,37 @@ export default function ExportPage() {
           </div>
         </Card>
  
+      </div>
+ 
+      {/* Champ lieu */}
+      <div style={{ marginBottom: 16 }}>
+        <label style={{
+          display: "block", fontSize: 11, fontWeight: 700,
+          letterSpacing: 1, marginBottom: 8, textTransform: "uppercase"
+        }}>
+          Entreprise / Lieu ciblé <span style={{ color: "var(--gray-text)", fontWeight: 400, textTransform: "none" }}>(optionnel — pour nommer le fichier)</span>
+        </label>
+        <input
+          type="text"
+          value={lieu}
+          onChange={e => setLieu(e.target.value)}
+          placeholder="Ex : McDonald's Wolfisheim, La Couronne, BioBurger..."
+          style={{
+            width: "100%",
+            padding: "12px 16px",
+            border: "2px solid var(--black)",
+            boxShadow: "3px 3px 0 var(--black)",
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: 13,
+            background: "var(--white)",
+            outline: "none",
+          }}
+        />
+        {lieu && (
+          <div style={{ marginTop: 6, fontSize: 12, color: "var(--gray-text)", fontFamily: "'IBM Plex Mono', monospace" }}>
+            → Fichier : <span style={{ color: "var(--turquoise)" }}>cv_serveur_{lieu.trim().replace(/\s+/g, "_").toLowerCase()}.docx</span>
+          </div>
+        )}
       </div>
  
       {/* Erreur */}
