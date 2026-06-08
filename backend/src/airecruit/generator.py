@@ -4,6 +4,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 import anthropic
 from docx import Document
+from docx import Document as D
+
+from airecruit.offer_parser import extract_offer_metadata
 
 load_dotenv()
 
@@ -15,29 +18,62 @@ def generate_letter(match_result: dict, offer: str) -> dict:
     """
     client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
-    prompt = f"""Tu es un expert en rédaction de lettres de motivation optimisées ATS.
+    # ── Extraction automatique des métadonnées de l'offre
+    metadata = extract_offer_metadata(offer)
 
-Rédige une lettre de motivation chirurgicale, dense et percutante.
+    prompt = fprompt = f"""Tu es un expert en rédaction de lettres de motivation percutantes et optimisées ATS.
+
+Rédige une lettre de motivation chirurgicale en 3 paragraphes stricts.
 
 === RÈGLES ABSOLUES ===
 
-LONGUEUR : 3 paragraphes stricts, 3 à 4 phrases maximum par paragraphe.
-Chaque phrase doit porter une information utile — zéro phrase de remplissage.
+OUVERTURE :
+Ne jamais commencer par "Vous", "Je suis", "Suite à", "Actuellement", "Passionné".
+Le §1 pose qui est le candidat, pourquoi ce poste maintenant, et ce qui l'attire dans CET établissement précisément.
+Ton : celui d'une personne qui parle à une autre personne, pas d'un CV qui se présente.
+2 à 3 phrases courtes valent mieux qu'une seule phrase surchargée.
+Jamais de formule générique. Maximum un adjectif par phrase.
 
-FORMAT : Aucune liste, aucun tiret, aucun gras. Prose uniquement.
+LONGUEUR : EXACTEMENT 3 paragraphes.
+§1 : 2 à 3 phrases.
+§2 : EXACTEMENT 4 phrases.
+§3 : EXACTEMENT 4 phrases.
+Zéro phrase creuse.
 
-STYLE : Ton professionnel, direct, humain. Pas scolaire, pas robotique.
-Chaque phrase commence différemment — pas de répétition de structure.
+PERSONNE : Rédige exclusivement à la première personne du singulier (je, mon, mes).
+Jamais de troisième personne. Jamais le prénom du candidat dans le corps du texte.
 
-ATS — CONTRAINTE CRITIQUE :
-Intègre naturellement un maximum de mots-clés de l'offre dans le texte.
-Les mots-clés doivent apparaître dans leur forme exacte (pas de synonymes).
+FORMAT :
+Prose structurée, phrases courtes et autonomes, chacune terminée par un point.
+Maximum deux propositions par phrase, séparées par une virgule ou un connecteur naturel (et, mais, où, tandis que, car).
+Aucun élément de mise en forme visuelle : pas de liste, pas de gras, pas de titre.
+Jamais de formule d'appel ni de signature.
+
+STYLE :
+Ton direct, humain et confiant. Une idée par phrase. Maximum un adjectif par phrase.
+Chaque phrase apporte une information nouvelle par rapport à la précédente.
+Les phrases s'enchaînent avec fluidité, comme une conversation écrite soignée.
+
+STRUCTURE OBLIGATOIRE :
+§1 : Qui est le candidat + pourquoi ce poste maintenant + ce qui l'attire dans CET établissement.
+     Une seule idée par proposition. Nommer l'établissement naturellement.
+§2 : Faits concrets issus du CV, toutes les expériences pertinentes dosées selon leur
+     proximité avec le poste, mots-clés de l'offre intégrés naturellement dans leur forme exacte.
+     Le LLM choisit quoi mettre en avant selon la pertinence, pas selon l'ordre chronologique.
+§3 : Valeur ajoutée spécifique à CET établissement + disponibilité + ouverture entretien.
+     Affirmer, pas supposer. Nommer l'entreprise explicitement.
+
+RÈGLES DE FOND :
+- Nommer l'entreprise dans §1 ET dans §3
+- Zéro formule générique : "profil", "valeurs", "standards", "engagement", "dynamique", "motivé", "polyvalent"
+- Zéro adjectif générique de bilan : "solide", "complet", "fort", "efficace", "riche"
+- Si l'offre est vague, compenser par des faits précis et chiffrés du CV
+- Le §3 doit dire quelque chose de spécifique à l'entreprise, pas une conclusion générique
+- §3 : conclure avec une ouverture directe et chaleureuse, jamais une formule administrative
+
+ATS - CONTRAINTE CRITIQUE :
+Intègre tous les mots-clés de l'offre dans leur forme exacte (pas de synonymes).
 Priorité aux mots-clés les plus fréquents dans l'offre.
-
-STRUCTURE :
-§1 — Introduction : poste visé + accroche directe sur l'expérience la plus pertinente
-§2 — Expériences : 2 expériences max, faits concrets, mots-clés ATS intégrés
-§3 — Conclusion : valeur ajoutée + disponibilité + ouverture entretien (2 phrases max)
 
 === OFFRE D'EMPLOI ===
 {offer}
@@ -54,10 +90,9 @@ STRUCTURE :
 === RAISON DU MATCH ===
 {match_result['selection_reason']}
 
-Réponds uniquement avec les 3 paragraphes — pas de formule d'appel, pas de signature, pas de titre."""
-
+Réponds uniquement avec les 3 paragraphes. Pas de formule d'appel, pas de signature, pas de titre."""
     response = client.messages.create(
-        model="claude-sonnet-4-5",
+        model="claude-sonnet-4-6",
         max_tokens=1500,
         messages=[{"role": "user", "content": prompt}]
     )
@@ -73,21 +108,22 @@ Réponds uniquement avec les 3 paragraphes — pas de formule d'appel, pas de si
     md_path.write_text(corps, encoding="utf-8")
 
     # Injection dans le template DOCX
-    docx_path = _inject_docx(corps, match_result, output_dir, nom_fichier)
+    metadata = extract_offer_metadata(offer)
+    print("DEBUG metadata:", metadata)  # ← ajoute cette ligne
+    docx_path = _inject_docx(corps, match_result, metadata, output_dir, nom_fichier)
 
     return {
-        "md_path": str(md_path),
+        "md_path":   str(md_path),
         "docx_path": str(docx_path),
-        "corps": corps
+        "corps":     corps,
+        "metadata":  metadata,
     }
 
 
-def _inject_docx(corps: str, match_result: dict, output_dir: Path, nom_fichier: str) -> Path:
-    """Injecte le contenu dans le template DOCX et sauvegarde."""
-
+def _inject_docx(corps, match_result, metadata, output_dir, nom_fichier):
     template_path = Path("templates/lettre_template.docx")
     if not template_path.exists():
-        raise FileNotFoundError("Template DOCX introuvable : templates/lettre_template.docx")
+        raise FileNotFoundError("Template DOCX introuvable.")
 
     doc = Document(template_path)
 
@@ -100,30 +136,34 @@ def _inject_docx(corps: str, match_result: dict, output_dir: Path, nom_fichier: 
     date_en = datetime.now().strftime("%d %B %Y")
     for en, fr in mois_fr.items():
         date_en = date_en.replace(en, fr)
-    date_fr = date_en
 
     placeholders = {
-        "{{date}}": date_fr,
-        "{{entreprise}}": match_result.get("entreprise", ""),
-        "{{adresse_entreprise}}": match_result.get("adresse_entreprise", ""),
-        "{{poste}}": match_result.get("poste", ""),
-        "{{corps}}": corps,
+        "{{date}}":               date_en,
+        "{{entreprise}}":         metadata.get("entreprise", ""),
+        "{{adresse_entreprise}}": metadata.get("adresse", ""),
+        "{{poste}}":              metadata.get("poste", ""),
+        "{{corps}}":              corps,
     }
 
     for paragraph in doc.paragraphs:
+        full_text = "".join(run.text for run in paragraph.runs)
+
         for placeholder, value in placeholders.items():
-            if placeholder in paragraph.text:
-                # Reconstruire le texte complet du paragraphe
-                full_text = paragraph.text
-                if placeholder in full_text:
-                    # Vider tous les runs sauf le premier
-                    for i, run in enumerate(paragraph.runs):
-                        if i == 0:
-                            run.text = full_text.replace(placeholder, value)
-                        else:
-                            run.text = ""
+            if placeholder in full_text:
+                print(f"DEBUG remplacement: '{placeholder}' → '{value}'")
+                full_text = full_text.replace(placeholder, value)
+
+        if paragraph.runs:
+            paragraph.runs[0].text = full_text
+            for run in paragraph.runs[1:]:
+                run.text = ""
 
     docx_path = output_dir / f"{nom_fichier}.docx"
     doc.save(docx_path)
 
+
+    check = D(str(docx_path))
+    for p in check.paragraphs:
+        if 'Yamisushi' in p.text or '{{entreprise}}' in p.text:
+            print(f"VERIFY: '{p.text}'")
     return docx_path

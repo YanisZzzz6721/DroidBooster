@@ -1,18 +1,19 @@
 "use client"
- 
+
 import Link from "next/link"
 import { usePathname } from "next/navigation"
- 
+
 const NAV = [
-  { href: "/",         label: "Générer",    icon: "⚡", desc: "Lettre & CV"   },
-  { href: "/optimize", label: "Optimiser",  icon: "◈",  desc: "Analyse ATS"  },
-  { href: "/export",   label: "Exporter",   icon: "↓",  desc: "CV → DOCX"    },
-  { href: "/history",  label: "Historique", icon: "◎",  desc: "Candidatures" },
+  { href: "/",         label: "Générer",    icon: "⚡", desc: "Lettre & CV"    },
+  { href: "/optimize", label: "Optimiser",  icon: "◈",  desc: "Analyse ATS"   },
+  { href: "/export",   label: "Exporter",   icon: "↓",  desc: "CV → DOCX"     },
+  { href: "/search",   label: "Rechercher", icon: "◎",  desc: "Offres emploi"  },
+  { href: "/history",  label: "Historique", icon: "◎",  desc: "Candidatures"  },
 ]
- 
+
 export default function Sidebar() {
   const path = usePathname()
- 
+
   return (
     <aside style={{
       position:      "fixed",
@@ -26,7 +27,7 @@ export default function Sidebar() {
       flexDirection: "column",
       zIndex:        100,
     }}>
- 
+
       {/* Logo */}
       <div style={{
         padding:      "1.5rem 1.25rem 1.25rem",
@@ -52,7 +53,7 @@ export default function Sidebar() {
           v1.0 — IA Candidatures
         </div>
       </div>
- 
+
       {/* Nav */}
       <nav style={{ flex: 1, padding: "0.75rem 0" }}>
         {NAV.map(item => {
@@ -87,7 +88,7 @@ export default function Sidebar() {
               }}>
                 {item.icon}
               </span>
- 
+
               <div>
                 <div style={{
                   fontFamily:    "'Space Grotesk', sans-serif",
@@ -112,7 +113,7 @@ export default function Sidebar() {
           )
         })}
       </nav>
- 
+
       {/* Footer */}
       <div style={{
         padding:   "1rem 1.25rem",
@@ -132,7 +133,7 @@ export default function Sidebar() {
           </span>
         </div>
       </div>
- 
+
     </aside>
   )
 }

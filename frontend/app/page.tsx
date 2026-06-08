@@ -300,7 +300,7 @@ export default function Home() {
                     {lettreDocxFilename && (
                       <div style={{ display: "flex", justifyContent: "flex-end" }}>
                         <a
-                          href={`${API}/download-lettre/${lettreDocxFilename}`}
+                          href={`${API}/download-lettre/${lettreDocxFilename}?t=${Date.now()}`}
                           className="btn-primary btn-sm"
                           style={{ textDecoration: "none" }}
                           download

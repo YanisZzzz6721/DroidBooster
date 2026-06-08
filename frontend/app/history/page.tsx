@@ -1,422 +1,458 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import {
-  getHistory,
-  getHistoryDetail,
-  deleteHistory,
-  type Candidature,
-  type CandidatureDetail,
-} from "@/lib/api"
-import Card from "@/components/Card"
+import { getHistory, getHistoryDetail, deleteHistory } from "@/lib/api"
 import ScoreBar from "@/components/ScoreBar"
-import KeywordBadge from "@/components/KeywordBadge"
-import MarkdownView from "@/components/MarkdownView"
 import PushButton from "@/components/PushButton"
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 
-function scoreColor(score: number | null): string {
-  if (!score) return "var(--gray-400)"
-  if (score >= 70) return "var(--turquoise)"
-  if (score >= 50) return "var(--orange)"
+interface Candidature {
+  id:             number
+  created_at:     string
+  cv_nom:         string
+  poste:          string | null
+  entreprise:     string | null
+  adresse:        string | null
+  match_score:    number | null
+  ats_score:      number | null
+  lettre_docx:    string | null
+  cv_optimise_md: string | null
+}
+
+interface CandidatureDetail extends Candidature {
+  offre_texte:    string
+  lettre_md:      string | null
+  preferences:    string | null
+}
+
+function scoreColor(s: number | null) {
+  if (!s) return "#888"
+  if (s >= 70) return "var(--turquoise)"
+  if (s >= 50) return "var(--orange)"
   return "#c0392b"
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("fr-FR", {
-    day: "2-digit", month: "short", year: "numeric",
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleString("fr-FR", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
     hour: "2-digit", minute: "2-digit",
   })
 }
 
-function downloadMd(content: string, filename = "cv_optimise.md") {
-  const blob = new Blob([content], { type: "text/markdown;charset=utf-8" })
+function formatShort(iso: string) {
+  return new Date(iso).toLocaleString("fr-FR", {
+    day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+  })
+}
+
+function downloadFile(content: string, filename: string) {
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" })
   const url  = URL.createObjectURL(blob)
   const a    = document.createElement("a")
   a.href = url; a.download = filename; a.click()
   URL.revokeObjectURL(url)
 }
 
-interface TabDef { key: string; label: string; show: boolean }
+// ─── Jauge score ──────────────────────────────────────────────────────────────
 
-// ─── Composant ────────────────────────────────────────────────────────────────
+function Gauge({ score, label }: { score: number; label: string }) {
+  const color = scoreColor(score)
+  const r = 36
+  const circ = 2 * Math.PI * r
+  const fill = (score / 100) * circ
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+      <svg width={96} height={96} viewBox="0 0 96 96">
+        <circle cx={48} cy={48} r={r} fill="none" stroke="#e2e2df" strokeWidth={7} />
+        <circle
+          cx={48} cy={48} r={r} fill="none"
+          stroke={color} strokeWidth={7}
+          strokeDasharray={`${fill} ${circ}`}
+          strokeLinecap="butt"
+          transform="rotate(-90 48 48)"
+        />
+        <text x={48} y={53} textAnchor="middle" fontSize={20} fontWeight={700}
+          fill={color} fontFamily="Space Grotesk, sans-serif">{score}</text>
+      </svg>
+      <span style={{
+        fontSize: 10, textTransform: "uppercase", letterSpacing: "0.12em",
+        fontFamily: "'IBM Plex Mono', monospace", color: "rgba(255,255,255,0.5)"
+      }}>{label}</span>
+    </div>
+  )
+}
+
+// ─── Section bloc ─────────────────────────────────────────────────────────────
+
+function Block({ title, tag, tagColor, children, action }: {
+  title: string
+  tag?: string
+  tagColor?: string
+  children: React.ReactNode
+  action?: React.ReactNode
+}) {
+  return (
+    <div style={{ border: "2px solid var(--black)", boxShadow: "4px 4px 0 var(--black)" }}>
+      <div style={{
+        padding: "12px 20px",
+        borderBottom: "2px solid var(--black)",
+        background: "var(--black)",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+      }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+          {title}
+        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {tag && (
+            <span style={{
+              fontSize: 10, fontFamily: "'IBM Plex Mono', monospace",
+              padding: "2px 8px",
+              background: tagColor || "var(--turquoise)",
+              color: "#fff",
+            }}>{tag}</span>
+          )}
+          {action}
+        </div>
+      </div>
+      <div style={{ background: "var(--white)" }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function History() {
-  const [list,     setList]     = useState<Candidature[]>([])
-  const [selected, setSelected] = useState<CandidatureDetail | null>(null)
-  const [loading,  setLoading]  = useState<boolean>(true)
-  const [loadingDetail, setLoadingDetail] = useState<boolean>(false)
-  const [tab,      setTab]      = useState<string>("ats")
+  const [list,          setList]          = useState<Candidature[]>([])
+  const [selected,      setSelected]      = useState<CandidatureDetail | null>(null)
+  const [loading,       setLoading]       = useState(true)
+  const [loadingDetail, setLoadingDetail] = useState(false)
+  const [view,          setView]          = useState<"list" | "detail">("list")
 
   useEffect(() => {
-    getHistory().then(data => setList(data.candidatures ?? data)).finally(() => setLoading(false))
+    getHistory()
+      .then(d => setList(d.candidatures ?? d))
+      .finally(() => setLoading(false))
   }, [])
 
-  const open = async (id: number): Promise<void> => {
+  async function open(id: number) {
     setLoadingDetail(true)
+    setView("detail")
     const detail = await getHistoryDetail(id)
     setSelected(detail)
-    setTab("ats")
     setLoadingDetail(false)
   }
 
-  const remove = async (id: number, e: React.MouseEvent<HTMLButtonElement>): Promise<void> => {
+  async function remove(id: number, e: React.MouseEvent) {
     e.stopPropagation()
     await deleteHistory(id)
-    setList((prev: Candidature[]) => prev.filter((c: Candidature) => c.id !== id))
-    if (selected?.id === id) setSelected(null)
+    setList(prev => prev.filter(c => c.id !== id))
+    if (selected?.id === id) { setSelected(null); setView("list") }
   }
 
-  const detailTabs: TabDef[] = selected ? [
-    { key: "ats",    label: "Rapport ATS",  show: true                          },
-    { key: "lettre", label: "Lettre",       show: !!selected.lettre_md          },
-    { key: "cv",     label: "CV optimisé",  show: !!selected.cv_optimise_md     },
-    { key: "offre",  label: "Offre",        show: !!selected.offre_texte        },
-  ].filter((t: TabDef) => t.show) : []
+  function downloadLettre() {
+    if (!selected?.lettre_docx) return
+    const filename = selected.lettre_docx.split("/").pop()!
+    window.open(`${API}/download-lettre/${filename}?t=${Date.now()}`, "_blank")
+  }
 
   if (loading) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "40vh" }}>
-      <span style={{ fontFamily: "'IBM Plex Mono', monospace", color: "var(--gray-400)", fontSize: "0.85rem" }}>
-        Chargement...
-      </span>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "50vh" }}>
+      <span style={{ fontFamily: "'IBM Plex Mono', monospace", color: "var(--gray-text)" }}>Chargement...</span>
     </div>
   )
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
-
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.3rem" }}>
-          <span style={{
-            fontFamily: "'IBM Plex Mono', monospace",
-            fontSize:   "0.72rem",
-            background: "#0D2137",
-            color:      "var(--white)",
-            padding:    "0.15rem 0.5rem",
-            border:     "1.5px solid var(--black)",
-          }}>HISTORIQUE</span>
-          <span style={{
-            fontFamily: "'IBM Plex Mono', monospace",
-            fontSize:   "0.72rem",
-            color:      "var(--gray-400)",
-          }}>
-            {list.length} candidature{list.length !== 1 ? "s" : ""}
-          </span>
-        </div>
-        <h1 style={{ fontSize: "1.8rem", marginBottom: "0.3rem" }}>Historique</h1>
-        <p style={{ color: "var(--gray-600)", fontSize: "0.88rem" }}>
-          Clique sur une candidature pour voir le rapport ATS, la lettre et le CV optimisé.
+  // ── VUE LISTE ──────────────────────────────────────────────────────────────
+  if (view === "list") return (
+    <div>
+      <div style={{ marginBottom: 28 }}>
+        <span style={{ display: "inline-block", background: "var(--orange)", color: "#fff", fontSize: 10, fontWeight: 700, padding: "3px 10px", letterSpacing: 1, marginBottom: 8 }}>HISTORIQUE</span>
+        <h1 style={{ fontSize: 28, fontWeight: 700 }}>
+          Mes candidatures <span style={{ color: "var(--turquoise)" }}>({list.length})</span>
+        </h1>
+        <p style={{ color: "var(--gray-text)", marginTop: 6, fontSize: 14 }}>
+          Clique sur une candidature pour voir le rapport complet.
         </p>
       </div>
 
       {list.length === 0 ? (
-        <div style={{
-          padding:    "4rem",
-          border:     "2px dashed var(--gray-200)",
-          textAlign:  "center",
-        }}>
-          <div style={{
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontWeight: 700,
-            fontSize:   "1rem",
-            color:      "var(--gray-400)",
-            marginBottom: "0.5rem",
-          }}>
-            Aucune candidature
-          </div>
-          <div style={{
-            fontFamily: "'IBM Plex Mono', monospace",
-            fontSize:   "0.75rem",
-            color:      "var(--gray-400)",
-          }}>
-            Lance ton premier pipeline sur la page Générer.
-          </div>
+        <div style={{ padding: "80px 32px", border: "2px dashed var(--gray)", textAlign: "center", color: "var(--gray-text)" }}>
+          Aucune candidature. Lance le pipeline sur la page Generer.
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: "1.5rem", alignItems: "start" }}>
-
-          {/* ── Colonne gauche : liste ────────────────────────────────────── */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-            {list.map((c: Candidature) => (
-              <div
-                key={c.id}
-                onClick={() => open(c.id)}
-                style={{
-                  border:     selected?.id === c.id ? "2px solid var(--orange)" : "2px solid var(--black)",
-                  boxShadow:  selected?.id === c.id ? "4px 4px 0px var(--orange)" : "4px 4px 0px var(--black)",
-                  background: selected?.id === c.id ? "#FFF8F3" : "var(--white)",
-                  padding:    "1rem",
-                  cursor:     "pointer",
-                  transition: "all 0.1s ease",
-                }}
-                onMouseEnter={e => {
-                  if (selected?.id !== c.id) {
-                    (e.currentTarget as HTMLElement).style.transform = "translate(-1px, -1px)"
-                    ;(e.currentTarget as HTMLElement).style.boxShadow = "5px 5px 0px var(--black)"
-                  }
-                }}
-                onMouseLeave={e => {
-                  if (selected?.id !== c.id) {
-                    (e.currentTarget as HTMLElement).style.transform = "translate(0, 0)"
-                    ;(e.currentTarget as HTMLElement).style.boxShadow = "4px 4px 0px var(--black)"
-                  }
-                }}
-              >
-                {/* Nom CV + date */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.6rem" }}>
-                  <div style={{
-                    fontFamily: "'Space Grotesk', sans-serif",
-                    fontWeight: 700,
-                    fontSize:   "0.85rem",
-                    color:      "var(--black)",
-                  }}>
-                    {c.cv_nom}
-                  </div>
-                  <button
-                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => remove(c.id, e)}
-                    style={{
-                      fontFamily:  "'IBM Plex Mono', monospace",
-                      fontSize:    "0.65rem",
-                      color:       "var(--gray-400)",
-                      background:  "transparent",
-                      border:      "none",
-                      cursor:      "pointer",
-                      padding:     "0 0.2rem",
-                    }}
-                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "#c0392b"}
-                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "var(--gray-400)"}
-                  >
-                    ✗
-                  </button>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {list.map(c => (
+            <div
+              key={c.id}
+              onClick={() => open(c.id)}
+              style={{
+                border: "2px solid var(--black)",
+                boxShadow: "4px 4px 0 var(--black)",
+                background: "var(--white)",
+                padding: "20px 24px",
+                cursor: "pointer",
+                transition: "transform 0.1s, box-shadow 0.1s",
+                display: "grid",
+                gridTemplateColumns: "1fr auto",
+                gap: 16,
+                alignItems: "center",
+              }}
+              onMouseEnter={e => {
+                const el = e.currentTarget as HTMLElement
+                el.style.transform = "translate(-2px,-2px)"
+                el.style.boxShadow = "6px 6px 0 var(--black)"
+              }}
+              onMouseLeave={e => {
+                const el = e.currentTarget as HTMLElement
+                el.style.transform = "translate(0,0)"
+                el.style.boxShadow = "4px 4px 0 var(--black)"
+              }}
+            >
+              <div>
+                {/* Entreprise + poste */}
+                <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 6 }}>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: "var(--black)" }}>
+                    {c.entreprise || c.cv_nom}
+                  </span>
+                  {c.poste && (
+                    <span style={{ fontSize: 13, color: "var(--orange)", fontWeight: 600 }}>
+                      {c.poste}
+                    </span>
+                  )}
                 </div>
 
-                {/* Scores */}
-                <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.6rem" }}>
+                {/* Adresse + date */}
+                <div style={{ display: "flex", gap: 16, marginBottom: 10 }}>
+                  {c.adresse && (
+                    <span style={{ fontSize: 12, color: "var(--gray-text)", fontFamily: "'IBM Plex Mono', monospace" }}>
+                      {c.adresse}
+                    </span>
+                  )}
+                  <span style={{ fontSize: 12, color: "var(--gray-text)", fontFamily: "'IBM Plex Mono', monospace" }}>
+                    {formatShort(c.created_at)}
+                  </span>
+                </div>
+
+                {/* Tags */}
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {c.match_score !== null && (
-                    <span style={{
-                      fontFamily:  "'IBM Plex Mono', monospace",
-                      fontSize:    "0.7rem",
-                      padding:     "0.15rem 0.5rem",
-                      border:      "1.5px solid var(--black)",
-                      background:  "var(--turquoise)",
-                      color:       "var(--white)",
-                      fontWeight:  600,
-                    }}>
+                    <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, padding: "3px 10px", background: "var(--turquoise)", color: "#fff", border: "1.5px solid var(--black)" }}>
                       Match {c.match_score}
                     </span>
                   )}
                   {c.ats_score !== null && (
-                    <span style={{
-                      fontFamily:  "'IBM Plex Mono', monospace",
-                      fontSize:    "0.7rem",
-                      padding:     "0.15rem 0.5rem",
-                      border:      "1.5px solid var(--black)",
-                      background:  scoreColor(c.ats_score),
-                      color:       "var(--white)",
-                      fontWeight:  600,
-                    }}>
+                    <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, padding: "3px 10px", background: scoreColor(c.ats_score), color: "#fff", border: "1.5px solid var(--black)" }}>
                       ATS {c.ats_score}
                     </span>
                   )}
-                </div>
-
-                {/* Date */}
-                <div style={{
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  fontSize:   "0.65rem",
-                  color:      "var(--gray-400)",
-                }}>
-                  {formatDate(c.created_at)}
+                  {c.lettre_docx && (
+                    <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", padding: "3px 10px", border: "1.5px solid var(--black)", color: "var(--black)" }}>
+                      Lettre DOCX
+                    </span>
+                  )}
+                  {c.cv_optimise_md && (
+                    <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", padding: "3px 10px", border: "1.5px solid var(--black)", color: "var(--black)" }}>
+                      CV optimise
+                    </span>
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
 
-          {/* ── Colonne droite : détail ───────────────────────────────────── */}
-          <div>
-            {!selected && !loadingDetail && (
-              <div style={{
-                border:     "2px dashed var(--gray-200)",
-                padding:    "4rem 2rem",
-                textAlign:  "center",
-              }}>
-                <div style={{
-                  fontFamily:   "'Space Grotesk', sans-serif",
-                  fontWeight:   700,
-                  fontSize:     "1rem",
-                  color:        "var(--gray-400)",
-                  marginBottom: "0.5rem",
-                }}>
-                  ← Sélectionne une candidature
-                </div>
-                <div style={{
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  fontSize:   "0.72rem",
-                  color:      "var(--gray-400)",
-                }}>
-                  Le rapport complet s'affichera ici
-                </div>
+              {/* Actions */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+                <button
+                  onClick={e => remove(c.id, e)}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "var(--gray-text)", fontSize: 18, lineHeight: 1 }}
+                  onMouseEnter={e => (e.currentTarget.style.color = "#c0392b")}
+                  onMouseLeave={e => (e.currentTarget.style.color = "var(--gray-text)")}
+                >x</button>
+                <span style={{ fontSize: 20, color: "var(--gray-text)" }}>›</span>
               </div>
-            )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 
-            {loadingDetail && (
-              <div style={{
-                border:     "2px solid var(--black)",
-                padding:    "4rem 2rem",
-                textAlign:  "center",
-              }}>
-                <span style={{ fontFamily: "'IBM Plex Mono', monospace", color: "var(--gray-400)", fontSize: "0.85rem" }}>
-                  Chargement...
-                </span>
-              </div>
-            )}
+  // ── VUE DETAIL ────────────────────────────────────────────────────────────
+  return (
+    <div>
 
-            {selected && !loadingDetail && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+      {/* Bouton retour */}
+      <button
+        onClick={() => { setView("list"); setSelected(null) }}
+        style={{
+          display: "flex", alignItems: "center", gap: 8,
+          background: "none", border: "2px solid var(--black)",
+          boxShadow: "3px 3px 0 var(--black)",
+          cursor: "pointer", padding: "8px 16px",
+          fontFamily: "'Space Grotesk', sans-serif",
+          fontSize: 13, fontWeight: 600, marginBottom: 28,
+          transition: "all 0.1s",
+        }}
+        onMouseEnter={e => {
+          const el = e.currentTarget as HTMLElement
+          el.style.transform = "translate(-1px,-1px)"
+          el.style.boxShadow = "4px 4px 0 var(--black)"
+        }}
+        onMouseLeave={e => {
+          const el = e.currentTarget as HTMLElement
+          el.style.transform = "translate(0,0)"
+          el.style.boxShadow = "3px 3px 0 var(--black)"
+        }}
+      >
+        &lt; Retour a l'historique
+      </button>
 
-                {/* Header du détail */}
-                <div style={{
-                  display:     "flex",
-                  alignItems:  "center",
-                  justifyContent: "space-between",
-                  padding:     "0.75rem 1rem",
-                  background:  "#0D2137",
-                  border:      "2px solid var(--black)",
-                  boxShadow:   "4px 4px 0px var(--black)",
-                }}>
-                  <div>
-                    <div style={{
-                      fontFamily: "'Space Grotesk', sans-serif",
-                      fontWeight: 700,
-                      fontSize:   "0.9rem",
-                      color:      "var(--white)",
-                    }}>
-                      {selected.cv_nom}
-                    </div>
-                    <div style={{
-                      fontFamily: "'IBM Plex Mono', monospace",
-                      fontSize:   "0.65rem",
-                      color:      "rgba(255,255,255,0.4)",
-                      marginTop:  "0.15rem",
-                    }}>
-                      {formatDate(selected.created_at)}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                    {selected.match_score !== null && (
-                      <span style={{
-                        fontFamily: "'IBM Plex Mono', monospace",
-                        fontSize:   "0.72rem",
-                        background: "var(--turquoise)",
-                        color:      "var(--white)",
-                        padding:    "0.2rem 0.6rem",
-                        border:     "1.5px solid rgba(255,255,255,0.2)",
-                        fontWeight: 600,
-                      }}>
-                        Match {selected.match_score}
-                      </span>
-                    )}
-                    {selected.ats_score !== null && (
-                      <span style={{
-                        fontFamily: "'IBM Plex Mono', monospace",
-                        fontSize:   "0.72rem",
-                        background: scoreColor(selected.ats_score),
-                        color:      "var(--white)",
-                        padding:    "0.2rem 0.6rem",
-                        border:     "1.5px solid rgba(255,255,255,0.2)",
-                        fontWeight: 600,
-                      }}>
-                        ATS {selected.ats_score}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Onglets */}
-                <div className="tab-bar">
-                  {detailTabs.map((t: TabDef) => (
-                    <button
-                      key={t.key}
-                      className={`tab ${tab === t.key ? "active" : ""}`}
-                      onClick={() => setTab(t.key)}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Contenu onglets */}
-                <div className="animate-in">
-
-                  {/* ATS */}
-                  {tab === "ats" && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-
-                      {selected.ats_score !== null && (
-                        <Card title="Score ATS" tag={`${selected.ats_score}/100`} tagColor={selected.ats_score >= 70 ? "turquoise" : "orange"}>
-                          <ScoreBar score={selected.ats_score} />
-                        </Card>
-                      )}
-
-                      {selected.cv_optimise_md && (
-                        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                          <PushButton variant="primary" size="sm" onClick={() => downloadMd(selected.cv_optimise_md!, `cv_optimise_${selected.cv_nom}.md`)}>
-                            ↓ Télécharger le CV optimisé (.md)
-                          </PushButton>
-                        </div>
-                      )}
-
-                      {/* Recap offre */}
-                      {selected.offre_texte && (
-                        <Card title="Offre analysée" tag="TEXTE" tagColor="orange">
-                          <pre style={{
-                            fontFamily: "'IBM Plex Mono', monospace",
-                            fontSize:   "0.75rem",
-                            color:      "var(--gray-600)",
-                            whiteSpace: "pre-wrap",
-                            lineHeight: 1.6,
-                            maxHeight:  "150px",
-                            overflowY:  "auto",
-                          }}>
-                            {selected.offre_texte}
-                          </pre>
-                        </Card>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Lettre */}
-                  {tab === "lettre" && selected.lettre_md && (
-                    <MarkdownView content={selected.lettre_md} label="Lettre de motivation" maxHeight="520px" />
-                  )}
-
-                  {/* CV optimisé */}
-                  {tab === "cv" && selected.cv_optimise_md && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                        <PushButton variant="primary" size="sm" onClick={() => downloadMd(selected.cv_optimise_md!, `cv_optimise_${selected.cv_nom}.md`)}>
-                          ↓ Télécharger (.md)
-                        </PushButton>
-                      </div>
-                      <MarkdownView content={selected.cv_optimise_md} label="CV optimisé" maxHeight="520px" />
-                    </div>
-                  )}
-
-                  {/* Offre complète */}
-                  {tab === "offre" && (
-                    <MarkdownView content={selected.offre_texte} label="Offre d'emploi" maxHeight="520px" />
-                  )}
-
-                </div>
-              </div>
-            )}
-          </div>
-
+      {loadingDetail && (
+        <div style={{ padding: "80px", textAlign: "center", border: "2px solid var(--black)" }}>
+          <span style={{ fontFamily: "'IBM Plex Mono', monospace", color: "var(--gray-text)" }}>Chargement du rapport...</span>
         </div>
       )}
 
+      {selected && !loadingDetail && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+
+          {/* ══ RECAP OFFRE ══ */}
+          <div style={{ background: "#0D2137", border: "2px solid var(--black)", boxShadow: "4px 4px 0 var(--black)" }}>
+
+            {/* Header */}
+            <div style={{ padding: "28px 32px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 32 }}>
+
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", color: "var(--orange)", textTransform: "uppercase", letterSpacing: "0.15em" }}>
+                    Candidature — {formatDate(selected.created_at)}
+                  </span>
+                  <div style={{ fontSize: 30, fontWeight: 700, color: "#fff", marginTop: 8, lineHeight: 1.2 }}>
+                    {selected.entreprise || selected.cv_nom}
+                  </div>
+                  {selected.poste && (
+                    <div style={{ fontSize: 16, color: "var(--orange)", fontWeight: 600, marginTop: 6 }}>
+                      {selected.poste}
+                    </div>
+                  )}
+                  {selected.adresse && (
+                    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", fontFamily: "'IBM Plex Mono', monospace", marginTop: 8 }}>
+                      {selected.adresse}
+                    </div>
+                  )}
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontFamily: "'IBM Plex Mono', monospace", marginTop: 6 }}>
+                    CV utilise : {selected.cv_nom}
+                    {selected.preferences && ` — Preferences : ${selected.preferences}`}
+                  </div>
+                </div>
+
+                {/* Jauges */}
+                <div style={{ display: "flex", gap: 28, flexShrink: 0 }}>
+                  {selected.match_score !== null && <Gauge score={selected.match_score} label="Match" />}
+                  {selected.ats_score   !== null && <Gauge score={selected.ats_score}   label="ATS"   />}
+                </div>
+              </div>
+            </div>
+
+            {/* Offre resumee */}
+            {selected.offre_texte && (
+              <div style={{ padding: "20px 32px" }}>
+                <div style={{ fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 10 }}>
+                  Ce que recherche l'employeur
+                </div>
+                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", lineHeight: 1.8, fontFamily: "'IBM Plex Mono', monospace" }}>
+                  {selected.offre_texte.slice(0, 600)}
+                  {selected.offre_texte.length > 600 && "..."}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ══ CV OPTIMISE ══ */}
+          {selected.cv_optimise_md && (
+            <Block
+              title="CV Optimise"
+              tag="MARKDOWN — ATS"
+              tagColor="var(--turquoise)"
+              action={
+                <PushButton
+                  variant="primary"
+                  size="sm"
+                  onClick={() => downloadFile(selected.cv_optimise_md!, `cv_${selected.entreprise || "optimise"}.md`)}
+                >
+                  Telecharger le CV (.md)
+                </PushButton>
+              }
+            >
+              <pre style={{
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: 12, lineHeight: 1.8,
+                color: "var(--black)",
+                whiteSpace: "pre-wrap",
+                padding: "24px 28px",
+                margin: 0,
+              }}>
+                {selected.cv_optimise_md}
+              </pre>
+            </Block>
+          )}
+
+          {/* ══ LETTRE ══ */}
+          {selected.lettre_md && (
+            <Block
+              title="Lettre de Motivation"
+              tag="DOCX DISPONIBLE"
+              tagColor="var(--orange)"
+              action={
+                selected.lettre_docx ? (
+                  <PushButton variant="primary" size="sm" onClick={downloadLettre}>
+                    Telecharger la lettre (.docx)
+                  </PushButton>
+                ) : undefined
+              }
+            >
+              {/* Barre ATS */}
+              {selected.ats_score !== null && (
+                <div style={{ padding: "16px 28px", borderBottom: "1px solid var(--gray)", background: "#FAFAF8" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                    <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--gray-text)" }}>
+                      Score ATS de la lettre
+                    </span>
+                    <span style={{ fontSize: 18, fontWeight: 700, color: scoreColor(selected.ats_score) }}>
+                      {selected.ats_score}/100
+                    </span>
+                  </div>
+                  <ScoreBar score={selected.ats_score} />
+                </div>
+              )}
+
+              {/* Corps lettre */}
+              <div style={{ padding: "28px", fontSize: 14, lineHeight: 2, color: "var(--black)", whiteSpace: "pre-wrap" }}>
+                {selected.lettre_md}
+              </div>
+            </Block>
+          )}
+
+          {/* ══ OFFRE COMPLETE ══ */}
+          {selected.offre_texte && (
+            <Block title="Offre d'emploi complete" tag="TEXTE BRUT" tagColor="#555">
+              <pre style={{
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: 12, lineHeight: 1.7,
+                color: "var(--black)",
+                whiteSpace: "pre-wrap",
+                padding: "24px 28px",
+                margin: 0,
+              }}>
+                {selected.offre_texte}
+              </pre>
+            </Block>
+          )}
+
+        </div>
+      )}
     </div>
   )
 }

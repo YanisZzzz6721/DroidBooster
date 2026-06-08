@@ -13,23 +13,23 @@ En année sabbatique 2026-2027, disponible immédiatement à temps plein. Étudi
 ## Expériences
 
 **Équipier polyvalent — BioBurger Bateliers, Strasbourg**
-Octobre 2025 — Avril 2026
+Août 2025 — Avril 2026
 Accueil des clients et prise de commandes. Préparation et service de produits frais et biologiques. Participation aux ouvertures et fermetures du restaurant. Autonomie sur le poste et respect strict des règles d'hygiène et de sécurité alimentaire.
 
 **Serveur — La Couronne, Strasbourg**
-Janvier 2025 — Septembre 2025
+Novembre 2025 — Août 2025
 Accueil des clients et prise de commandes. Service en salle et encaissement.
 Préparation de boissons chaudes, froides et alcoolisées au bar. Gestion des demandes et réclamations dans un environnement dynamique, en coordination avec l'équipe.
 
 **Vendeur conseil — Banette, Poterie**
-Mars 2024 – Novembre 2024
+Janvier 2024 – Septembre 2024
 - Accueil chaleureux et conseil personnalisé à chaque client
 - Encaissement et gestion de la file d'attente avec fluidité
 - Présentation soignée des produits et maintien de la propreté de l'espace
 - Application rigoureuse des normes d'hygiène et de sécurité alimentaire
 
 **Équipier polyvalent — McDonald's, Wolfisheim**
-Août 2022 — Février 2023
+Mai 2022 — Novembre 2023
 Prise de commandes et encaissement. Travail en équipe dans un environnement à forte affluence. Respect des règles d'hygiène.
 
 ## Compétences
