@@ -142,8 +142,9 @@ def generate(body: GenerateRequest):
 @app.post("/ats")
 def ats(body: AtsRequest):
     try:
-        analysis    = analyze_ats(body.offre_texte, body.match_result)
-        cv_path, _  = generate_optimized_cv(body.offre_texte, body.match_result, analysis)
+        analysis   = analyze_ats(body.offre_texte, body.match_result)
+        metadata   = extract_offer_metadata(body.offre_texte)
+        cv_path, _ = generate_optimized_cv(body.offre_texte, body.match_result, analysis, entreprise=metadata.get("entreprise", ""))
         cv_optimise = cv_path.read_text(encoding="utf-8")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -171,7 +172,6 @@ async def run(
         raise HTTPException(status_code=400, detail="Fournis un texte ou un fichier.")
 
     try:
-        # Extraction métadonnées offre
         metadata = extract_offer_metadata(offer_text)
 
         cvs          = load_cvs(str(CVS_DIR))
@@ -185,12 +185,12 @@ async def run(
         if mode in ("full", "letter_only"):
             letter           = generate_letter(match_result, offer_text)
             lettre_docx_path = letter["docx_path"]
-            response["lettre_md"]   = letter["corps"]
-            response["docx_path"]   = letter["docx_path"]
+            response["lettre_md"] = letter["corps"]
+            response["docx_path"] = letter["docx_path"]
 
         if mode in ("full", "cv_only"):
             analysis       = analyze_ats(offer_text, match_result)
-            cv_path, _     = generate_optimized_cv(offer_text, match_result, analysis)
+            cv_path, _     = generate_optimized_cv(offer_text, match_result, analysis, entreprise=metadata.get("entreprise", ""))
             cv_optimise_md = cv_path.read_text(encoding="utf-8")
             response["ats"] = {
                 "score":            analysis["score"],
@@ -201,7 +201,6 @@ async def run(
             }
             response["cv_optimise_md"] = cv_optimise_md
 
-        # Sauvegarde historique enrichi
         save_candidature(
             offre_texte    = offer_text[:2000],
             cv_nom         = match_result["cv_name"],
@@ -246,7 +245,7 @@ async def ats_custom(
             match_result["preferences_utilisateur"] = preferences.strip()
 
         analysis       = analyze_ats(offre_texte, match_result)
-        cv_path, _     = generate_optimized_cv(offre_texte, match_result, analysis)
+        cv_path, _     = generate_optimized_cv(offre_texte, match_result, analysis, entreprise=metadata.get("entreprise", ""))
         cv_optimise_md = cv_path.read_text(encoding="utf-8")
 
         save_candidature(
@@ -380,13 +379,15 @@ def export_delete(export_id: int):
         raise HTTPException(status_code=404, detail="Export introuvable.")
     return {"deleted": export_id}
 
+
+# ─── Recherche offres ─────────────────────────────────────────────────────────
+
 @app.get("/search-jobs")
 def search_jobs_endpoint(
     poste: str = "",
     ville: str = "Strasbourg",
     limit: int = 20,
 ):
-    """Recherche d'offres depuis France Travail + Indeed."""
     if not poste.strip():
         raise HTTPException(status_code=400, detail="Le champ poste est vide.")
     try:
@@ -394,4 +395,3 @@ def search_jobs_endpoint(
         return {"jobs": jobs, "count": len(jobs)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
- 
