@@ -21,31 +21,64 @@ MOIS_FR = {
     9: "septembre", 10: "octobre", 11: "novembre", 12: "décembre",
 }
 
+
 # ─── Dossier CVs générés ──────────────────────────────────────────────────────
 
 def _get_generated_dir() -> Path:
-    """Retourne le dossier cvs/generated/ et le crée si nécessaire."""
     generated_dir = Path(__file__).parent.parent.parent / "cvs" / "generated"
     generated_dir.mkdir(parents=True, exist_ok=True)
     return generated_dir
 
 
 def _save_generated_cv(cv_optimise: str, cv_name: str, entreprise: str = "") -> Path:
-    """
-    Sauvegarde le CV optimisé dans cvs/generated/ avec un nom structuré.
-    Format : cv_{cv_name}_{entreprise}_{YYYYMMDD}.md
-    """
     generated_dir = _get_generated_dir()
-
     today    = datetime.now().strftime("%Y%m%d")
     ent_safe = entreprise.lower().replace(" ", "_")[:20] if entreprise else "unknown"
     ent_safe = "".join(c for c in ent_safe if c.isalnum() or c == "_")
-
     filename = f"cv_{cv_name}_{ent_safe}_{today}.md"
     path     = generated_dir / filename
     path.write_text(cv_optimise, encoding="utf-8")
-
     return path
+
+
+def _load_examples(secteur: str = "", max_examples: int = 2) -> str:
+    """
+    Charge les CVs générés du même secteur comme exemples RAG.
+    Retourne une chaîne formatée à injecter dans le prompt.
+    """
+    generated_dir = _get_generated_dir()
+
+    all_files = sorted(
+        generated_dir.glob("*.md"),
+        key=lambda f: f.stat().st_mtime,
+        reverse=True,
+    )
+
+    if not all_files:
+        return ""
+
+    # Filtre par secteur si fourni
+    if secteur and secteur != "autre":
+        filtered = [f for f in all_files if secteur in f.name]
+        files = filtered[:max_examples] if filtered else all_files[:max_examples]
+    else:
+        files = all_files[:max_examples]
+
+    examples = []
+    for f in files:
+        try:
+            content = f.read_text(encoding="utf-8")
+            # Supprime les commentaires HTML du header
+            lines = [l for l in content.split("\n") if not l.startswith("<!--")]
+            examples.append("\n".join(lines).strip())
+        except Exception:
+            continue
+
+    if not examples:
+        return ""
+
+    sep = "\n\n---EXEMPLE---\n\n"
+    return sep.join(examples)
 
 
 # ─── Analyse ATS ─────────────────────────────────────────────────────────────
@@ -60,7 +93,6 @@ def analyze_ats(offer: str, match_result: dict, output_dir: str = "output") -> d
     analysis             = _call_claude(offer, cv_content, cv_name)
     report_path          = _generate_report(analysis, cv_name, output_dir)
     analysis["report_path"] = report_path
-
     return analysis
 
 
@@ -170,11 +202,10 @@ def generate_optimized_cv(
     analysis: dict,
     output_dir: str = "output",
     entreprise: str = "",
+    secteur: str = "",
 ) -> tuple:
     """
-    Génère un CV optimisé et le sauvegarde dans :
-      - output/cv_optimise_{cv_name}.md  (sortie standard)
-      - cvs/generated/cv_{cv_name}_{entreprise}_{date}.md  (NOUVEAU - RAG)
+    Génère un CV optimisé avec injection RAG des exemples du même secteur.
     """
     cv_name    = match_result.get("cv_name", "cv_inconnu")
     cv_content = match_result.get("cv_content", "")
@@ -185,11 +216,21 @@ def generate_optimized_cv(
     suggestions      = "\n".join(f"- {s}" for s in analysis.get("suggestions", []))
     score_actuel     = analysis.get("score", "?")
 
+    # ── RAG : charge les exemples du même secteur ──────────────────────────
+    exemples_str = _load_examples(secteur, max_examples=2)
+    exemples_section = ""
+    if exemples_str:
+        exemples_section = f"""
+=== EXEMPLES DE CVS BIEN RÉDIGÉS (même secteur — inspire-toi du niveau et du style) ===
+{exemples_str}
+
+"""
+
     prompt = f"""Tu es un expert en rédaction de CV et en optimisation ATS, spécialisé dans la rédaction percutante orientée résultats.
 
 Voici une offre d'emploi, un CV existant, et les résultats d'une analyse ATS.
 Ton rôle : réécrire intégralement le CV en Markdown optimisé pour maximiser le score ATS face à cette offre.
-
+{exemples_section}
 === OFFRE D'EMPLOI ===
 {offer}
 
@@ -280,19 +321,19 @@ Suggestions d'amélioration :
     date_fr = f"{today.day} {MOIS_FR[today.month]} {today.year}"
     header  = (
         f"<!-- CV optimisé par AIRecruit le {date_fr} -->\n"
-        f"<!-- Basé sur : {cv_name} | Score ATS avant optimisation : {score_actuel}/100 -->\n\n"
+        f"<!-- Basé sur : {cv_name} | Score ATS avant optimisation : {score_actuel}/100 -->\n"
+        f"<!-- Secteur : {secteur or 'non détecté'} -->\n\n"
     )
 
-    # ── Sauvegarde standard (output/)
+    # Sauvegarde standard (output/)
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
     cv_path = output_path / f"cv_optimise_{cv_name}.md"
     cv_path.write_text(header + cv_optimise, encoding="utf-8")
 
-    # ── NOUVEAU : Sauvegarde dans cvs/generated/ pour le RAG
+    # Sauvegarde dans cvs/generated/ pour le RAG
     _save_generated_cv(header + cv_optimise, cv_name, entreprise)
 
-    # Génération PDF (optionnel)
     try:
         from airecruit.cv_renderer import render_cv_pdf
         pdf_path = render_cv_pdf(str(cv_path), output_dir)

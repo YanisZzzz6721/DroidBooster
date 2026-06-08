@@ -4,7 +4,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 import anthropic
 from docx import Document
-from docx import Document as D
 
 from airecruit.offer_parser import extract_offer_metadata
 
@@ -18,10 +17,13 @@ def generate_letter(match_result: dict, offer: str) -> dict:
     """
     client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
-    # ── Extraction automatique des métadonnées de l'offre
     metadata = extract_offer_metadata(offer)
 
-    prompt = fprompt = f"""Tu es un expert en rédaction de lettres de motivation percutantes et optimisées ATS.
+    # Préférences utilisateur
+    preferences   = match_result.get("preferences_utilisateur", "")
+    prefs_section = f"\n=== PRÉFÉRENCES UTILISATEUR ===\n{preferences}\n" if preferences else ""
+
+    prompt = f"""Tu es un expert en rédaction de lettres de motivation percutantes et optimisées ATS.
 
 Rédige une lettre de motivation chirurgicale en 3 paragraphes stricts.
 
@@ -71,7 +73,7 @@ RÈGLES DE FOND :
 - Le §3 doit dire quelque chose de spécifique à l'entreprise, pas une conclusion générique
 - §3 : conclure avec une ouverture directe et chaleureuse, jamais une formule administrative
 
-ATS - CONTRAINTE CRITIQUE :
+ATS — CONTRAINTE CRITIQUE :
 Intègre tous les mots-clés de l'offre dans leur forme exacte (pas de synonymes).
 Priorité aux mots-clés les plus fréquents dans l'offre.
 
@@ -89,8 +91,9 @@ Priorité aux mots-clés les plus fréquents dans l'offre.
 
 === RAISON DU MATCH ===
 {match_result['selection_reason']}
-
+{prefs_section}
 Réponds uniquement avec les 3 paragraphes. Pas de formule d'appel, pas de signature, pas de titre."""
+
     response = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=1500,
@@ -104,12 +107,10 @@ Réponds uniquement avec les 3 paragraphes. Pas de formule d'appel, pas de signa
     output_dir.mkdir(exist_ok=True)
 
     nom_fichier = f"lettre_{match_result['cv_name']}"
-    md_path = output_dir / f"{nom_fichier}.md"
+    md_path     = output_dir / f"{nom_fichier}.md"
     md_path.write_text(corps, encoding="utf-8")
 
     # Injection dans le template DOCX
-    metadata = extract_offer_metadata(offer)
-    print("DEBUG metadata:", metadata)  # ← ajoute cette ligne
     docx_path = _inject_docx(corps, match_result, metadata, output_dir, nom_fichier)
 
     return {
@@ -150,7 +151,6 @@ def _inject_docx(corps, match_result, metadata, output_dir, nom_fichier):
 
         for placeholder, value in placeholders.items():
             if placeholder in full_text:
-                print(f"DEBUG remplacement: '{placeholder}' → '{value}'")
                 full_text = full_text.replace(placeholder, value)
 
         if paragraph.runs:
@@ -160,10 +160,4 @@ def _inject_docx(corps, match_result, metadata, output_dir, nom_fichier):
 
     docx_path = output_dir / f"{nom_fichier}.docx"
     doc.save(docx_path)
-
-
-    check = D(str(docx_path))
-    for p in check.paragraphs:
-        if 'Yamisushi' in p.text or '{{entreprise}}' in p.text:
-            print(f"VERIFY: '{p.text}'")
     return docx_path
