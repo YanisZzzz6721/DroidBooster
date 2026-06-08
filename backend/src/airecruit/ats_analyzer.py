@@ -16,8 +16,8 @@ load_dotenv()
 MODEL      = "claude-haiku-4-5-20251001"
 MAX_TOKENS = 1500
 
-# Chemin absolu vers output/ — indépendant du répertoire courant d'uvicorn
 OUTPUT_DIR = Path(__file__).parent.parent.parent / "output"
+CVS_DIR    = Path(__file__).parent.parent.parent / "cvs"
 
 MOIS_FR = {
     1: "janvier", 2: "février", 3: "mars", 4: "avril",
@@ -31,6 +31,81 @@ def _clean_cv_name(cv_name: str) -> str:
     return cv_name.split("/")[-1].split("\\")[-1]
 
 
+def _extract_base_name(cv_name_clean: str) -> str:
+    """
+    Extrait le nom de base du CV original depuis un nom de CV généré.
+    Ex: cv_cv_restauration_yamisushi_20260608 → cv_restauration
+    Évite les noms en cascade comme cv_cv_cv_restauration_...
+    """
+    # Cherche un pattern de date YYYYMMDD pour identifier un CV généré
+    m = re.search(r"(cv_\w+?)_\w+_\d{8}", cv_name_clean)
+    if m:
+        return m.group(1)
+    return cv_name_clean
+
+
+def _extract_profil(cv_content: str) -> str:
+    """
+    Extrait la section ## Profil ou ## Objectif du CV original.
+    Ce texte est immuable — Claude ne peut pas le modifier.
+    """
+    m = re.search(
+        r"##\s*(Profil|Objectif)\s*\n(.*?)(?=\n##|\Z)",
+        cv_content,
+        re.DOTALL | re.IGNORECASE,
+    )
+    if m:
+        return m.group(2).strip()
+    return ""
+
+
+def _extract_mots_cles(cv_content: str) -> str:
+    """
+    Extrait les mots_cles du frontmatter YAML du CV original.
+    Retourne vide si pas de frontmatter (CV généré).
+    """
+    m = re.search(r"mots_cles\s*:\s*(.+)", cv_content)
+    if m:
+        return m.group(1).strip()
+    return ""
+
+
+def _get_original_mots_cles(cv_name_clean: str) -> str:
+    """
+    Remonte au CV original depuis un nom de CV généré.
+    Cherche parmi les CVs originaux dans cvs/ celui dont le nom
+    est contenu dans le nom du CV généré.
+    """
+    for cv_file in sorted(CVS_DIR.glob("*.md")):
+        stem = cv_file.stem  # ex: cv_restauration
+        if stem in cv_name_clean:
+            try:
+                content   = cv_file.read_text(encoding="utf-8")
+                mots_cles = _extract_mots_cles(content)
+                if mots_cles:
+                    return mots_cles
+            except Exception:
+                continue
+    return ""
+
+
+def _get_original_profil(cv_name_clean: str) -> str:
+    """
+    Remonte au CV original pour récupérer le profil/objectif immuable.
+    """
+    for cv_file in sorted(CVS_DIR.glob("*.md")):
+        stem = cv_file.stem
+        if stem in cv_name_clean:
+            try:
+                content = cv_file.read_text(encoding="utf-8")
+                profil  = _extract_profil(content)
+                if profil:
+                    return profil
+            except Exception:
+                continue
+    return ""
+
+
 # ─── Dossier CVs générés ──────────────────────────────────────────────────────
 
 def _get_generated_dir() -> Path:
@@ -41,10 +116,18 @@ def _get_generated_dir() -> Path:
 
 def _save_generated_cv(cv_optimise: str, cv_name: str, entreprise: str = "") -> Path:
     generated_dir = _get_generated_dir()
-    today    = datetime.now().strftime("%Y%m%d")
-    ent_safe = entreprise.lower().replace(" ", "_")[:20] if entreprise else "unknown"
-    ent_safe = "".join(c for c in ent_safe if c.isalnum() or c == "_")
+    today        = datetime.now().strftime("%Y%m%d")
+    ent_safe     = entreprise.lower().replace(" ", "_")[:20] if entreprise else "unknown"
+    ent_safe     = "".join(c for c in ent_safe if c.isalnum() or c == "_")
     cv_name_safe = _clean_cv_name(cv_name)
+
+    # ── Garde-fou : évite les noms en cascade
+    # Si le nom contient déjà une date YYYYMMDD, c'est un CV généré
+    # → on extrait juste la base originale pour le nom du fichier
+    base_match = re.search(r"(cv_\w+?)_\w+_\d{8}", cv_name_safe)
+    if base_match:
+        cv_name_safe = base_match.group(1)
+
     filename = f"cv_{cv_name_safe}_{ent_safe}_{today}.md"
     path     = generated_dir / filename
     path.write_text(cv_optimise, encoding="utf-8")
@@ -66,7 +149,7 @@ def _load_examples(secteur: str = "", max_examples: int = 2, min_score: int = 75
     if not all_files:
         return ""
     if secteur and secteur != "autre":
-        filtered = [f for f in all_files if secteur in f.name]
+        filtered   = [f for f in all_files if secteur in f.name]
         candidates = filtered if filtered else all_files
     else:
         candidates = all_files
@@ -82,7 +165,7 @@ def _load_examples(secteur: str = "", max_examples: int = 2, min_score: int = 75
     if not good_examples:
         return ""
     good_examples.sort(key=lambda x: x[0], reverse=True)
-    top = good_examples[:max_examples]
+    top      = good_examples[:max_examples]
     examples = []
     for score, content in top:
         lines = [l for l in content.split("\n") if not l.startswith("<!--")]
@@ -221,6 +304,36 @@ def generate_optimized_cv(
     suggestions      = "\n".join(f"- {s}" for s in analysis.get("suggestions", []))
     score_actuel     = analysis.get("score", "?")
 
+    # ── Données immuables — toujours depuis le CV ORIGINAL ───────────────────
+    # Le profil vient du CV courant si présent, sinon du CV original
+    profil_original = _extract_profil(cv_content)
+    if not profil_original:
+        profil_original = _get_original_profil(cv_name)
+
+    # Les mots-clés viennent du frontmatter — si CV généré, remonte à l'original
+    mots_cles_cv = _extract_mots_cles(cv_content)
+    if not mots_cles_cv:
+        mots_cles_cv = _get_original_mots_cles(cv_name)
+
+    immuable_section = f"""
+=== DONNÉES IMMUABLES — COPIER MOT POUR MOT, NE JAMAIS MODIFIER ===
+Ces informations sont figées et doivent apparaître exactement telles quelles :
+
+PROFIL / OBJECTIF (à copier tel quel dans ## Profil) :
+{profil_original}
+
+MOTS-CLÉS CV DE BASE (à conserver et renforcer dans les bullets et compétences) :
+{mots_cles_cv}
+
+RÈGLES STRICTES :
+→ La disponibilité, le statut (année sabbatique) et toutes les infos du profil
+  doivent être copiées mot pour mot — ne jamais reformuler.
+→ Ne jamais déduire une date de disponibilité depuis la Formation.
+→ Ne jamais écrire "disponible à partir de" — toujours "disponible immédiatement".
+→ Tous les mots-clés du CV de base doivent apparaître dans le CV généré.
+"""
+
+    # ── RAG : exemples du même secteur ────────────────────────────────────────
     exemples_str     = _load_examples(secteur, max_examples=2)
     exemples_section = f"""
 === EXEMPLES DE CVS BIEN RÉDIGÉS (même secteur — inspire-toi du niveau et du style) ===
@@ -232,6 +345,7 @@ def generate_optimized_cv(
 
 Voici une offre d'emploi, un CV existant, et les résultats d'une analyse ATS.
 Ton rôle : réécrire intégralement le CV en Markdown optimisé pour maximiser le score ATS face à cette offre.
+{immuable_section}
 {exemples_section}
 === OFFRE D'EMPLOI ===
 {offer}
@@ -265,12 +379,8 @@ Suggestions d'amélioration :
      → Ne jamais inventer une expérience absente du CV original
    - Bullets/expérience : EXACTEMENT 4 bullets par expérience, ni plus ni moins
    - Formation      : 1 ligne par diplôme, ordre chronologique inversé
-   - Profil         : EXACTEMENT 3 phrases, pas une de plus :
-     1. Statut + disponibilité ("En année sabbatique, disponible immédiatement à temps plein.")
-     2. Compétences clés du poste en une phrase dense avec mots-clés ATS
-     3. Un différenciateur concret (langue, certification, compétence rare)
-     → Zéro générique ("dynamique", "motivé", "passionné")
-     → Zéro répétition entre les 3 phrases
+   - Profil         : COPIER MOT POUR MOT depuis DONNÉES IMMUABLES ci-dessus
+     → Ne jamais réécrire ni reformuler le profil
 
 3. FORMAT STRICT :
    Compétences → **Label (3 mots max)** : description
@@ -302,12 +412,13 @@ Suggestions d'amélioration :
    - Zéro phrase creuse, zéro remplissage, zéro répétition entre bullets
 
 5. OPTIMISATION ATS :
-   - Intègre tous les mots-clés MANQUANTS naturellement dans bullets et profil
-   - Conserve et renforce les mots-clés déjà présents
+   - Intègre tous les mots-clés MANQUANTS naturellement dans bullets
+   - Conserve et renforce TOUS les mots-clés du CV de base listés dans DONNÉES IMMUABLES
    - Priorité aux mots-clés les plus fréquents dans l'offre
 
 6. CONTRAINTES ABSOLUES :
    - Ne jamais inventer une expérience, compétence ou diplôme absent du CV original
+   - Ne jamais modifier la disponibilité ni le statut du candidat
    - Répondre uniquement en français
    - Répondre uniquement avec le Markdown brut du CV, sans commentaire ni balise de code"""
 
@@ -327,12 +438,10 @@ Suggestions d'amélioration :
         f"<!-- Secteur : {secteur or 'non détecté'} -->\n\n"
     )
 
-    # Sauvegarde standard (output/) — chemin absolu
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     cv_path = OUTPUT_DIR / f"cv_optimise_{cv_name}.md"
     cv_path.write_text(header + cv_optimise, encoding="utf-8")
 
-    # Sauvegarde dans cvs/generated/ pour le RAG
     _save_generated_cv(header + cv_optimise, cv_name, entreprise)
 
     try:
