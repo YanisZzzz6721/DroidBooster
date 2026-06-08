@@ -4,6 +4,7 @@ Module d'analyse ATS (Applicant Tracking System).
 
 import json
 import os
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -15,11 +16,19 @@ load_dotenv()
 MODEL      = "claude-haiku-4-5-20251001"
 MAX_TOKENS = 1500
 
+# Chemin absolu vers output/ — indépendant du répertoire courant d'uvicorn
+OUTPUT_DIR = Path(__file__).parent.parent.parent / "output"
+
 MOIS_FR = {
     1: "janvier", 2: "février", 3: "mars", 4: "avril",
     5: "mai", 6: "juin", 7: "juillet", 8: "août",
     9: "septembre", 10: "octobre", 11: "novembre", 12: "décembre",
 }
+
+
+def _clean_cv_name(cv_name: str) -> str:
+    """Supprime les slashes si le cv_name vient de cvs/generated/."""
+    return cv_name.split("/")[-1].split("\\")[-1]
 
 
 # ─── Dossier CVs générés ──────────────────────────────────────────────────────
@@ -35,63 +44,63 @@ def _save_generated_cv(cv_optimise: str, cv_name: str, entreprise: str = "") -> 
     today    = datetime.now().strftime("%Y%m%d")
     ent_safe = entreprise.lower().replace(" ", "_")[:20] if entreprise else "unknown"
     ent_safe = "".join(c for c in ent_safe if c.isalnum() or c == "_")
-    filename = f"cv_{cv_name}_{ent_safe}_{today}.md"
+    cv_name_safe = _clean_cv_name(cv_name)
+    filename = f"cv_{cv_name_safe}_{ent_safe}_{today}.md"
     path     = generated_dir / filename
     path.write_text(cv_optimise, encoding="utf-8")
     return path
 
 
-def _load_examples(secteur: str = "", max_examples: int = 2) -> str:
-    """
-    Charge les CVs générés du même secteur comme exemples RAG.
-    Retourne une chaîne formatée à injecter dans le prompt.
-    """
-    generated_dir = _get_generated_dir()
+def _extract_score(content: str) -> int:
+    m = re.search(r"Score ATS avant optimisation : (\d+)/100", content)
+    return int(m.group(1)) if m else 0
 
+
+def _load_examples(secteur: str = "", max_examples: int = 2, min_score: int = 75) -> str:
+    generated_dir = _get_generated_dir()
     all_files = sorted(
         generated_dir.glob("*.md"),
         key=lambda f: f.stat().st_mtime,
         reverse=True,
     )
-
     if not all_files:
         return ""
-
-    # Filtre par secteur si fourni
     if secteur and secteur != "autre":
         filtered = [f for f in all_files if secteur in f.name]
-        files = filtered[:max_examples] if filtered else all_files[:max_examples]
+        candidates = filtered if filtered else all_files
     else:
-        files = all_files[:max_examples]
-
-    examples = []
-    for f in files:
+        candidates = all_files
+    good_examples = []
+    for f in candidates:
         try:
             content = f.read_text(encoding="utf-8")
-            # Supprime les commentaires HTML du header
-            lines = [l for l in content.split("\n") if not l.startswith("<!--")]
-            examples.append("\n".join(lines).strip())
+            score   = _extract_score(content)
+            if score >= min_score:
+                good_examples.append((score, content))
         except Exception:
             continue
-
-    if not examples:
+    if not good_examples:
         return ""
-
-    sep = "\n\n---EXEMPLE---\n\n"
-    return sep.join(examples)
+    good_examples.sort(key=lambda x: x[0], reverse=True)
+    top = good_examples[:max_examples]
+    examples = []
+    for score, content in top:
+        lines = [l for l in content.split("\n") if not l.startswith("<!--")]
+        examples.append(f"<!-- Score ATS : {score}/100 -->\n" + "\n".join(lines).strip())
+    return "\n\n---EXEMPLE---\n\n".join(examples)
 
 
 # ─── Analyse ATS ─────────────────────────────────────────────────────────────
 
 def analyze_ats(offer: str, match_result: dict, output_dir: str = "output") -> dict:
-    cv_name    = match_result.get("cv_name", "cv_inconnu")
+    cv_name    = _clean_cv_name(match_result.get("cv_name", "cv_inconnu"))
     cv_content = match_result.get("cv_content", "")
 
     if not cv_content:
         raise ValueError("match_result ne contient pas 'cv_content'.")
 
-    analysis             = _call_claude(offer, cv_content, cv_name)
-    report_path          = _generate_report(analysis, cv_name, output_dir)
+    analysis                = _call_claude(offer, cv_content, cv_name)
+    report_path             = _generate_report(analysis, cv_name)
     analysis["report_path"] = report_path
     return analysis
 
@@ -149,9 +158,8 @@ Réponds en français."""
     return data
 
 
-def _generate_report(analysis: dict, cv_name: str, output_dir: str) -> Path:
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
+def _generate_report(analysis: dict, cv_name: str) -> Path:
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     today   = datetime.now()
     date_fr = f"{today.day} {MOIS_FR[today.month]} {today.year}"
@@ -177,7 +185,7 @@ def _generate_report(analysis: dict, cv_name: str, output_dir: str) -> Path:
     lines += [f"{i}. {s}" for i, s in enumerate(suggestions, 1)] if suggestions else ["_Aucune._"]
     lines += ["", "---", "", f"*Généré par AIRecruit le {date_fr}.*"]
 
-    report_path = output_path / f"ats_{cv_name}.md"
+    report_path = OUTPUT_DIR / f"ats_{cv_name}.md"
     report_path.write_text("\n".join(lines), encoding="utf-8")
     return report_path
 
@@ -204,10 +212,7 @@ def generate_optimized_cv(
     entreprise: str = "",
     secteur: str = "",
 ) -> tuple:
-    """
-    Génère un CV optimisé avec injection RAG des exemples du même secteur.
-    """
-    cv_name    = match_result.get("cv_name", "cv_inconnu")
+    cv_name    = _clean_cv_name(match_result.get("cv_name", "cv_inconnu"))
     cv_content = match_result.get("cv_content", "")
     client     = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
@@ -216,15 +221,12 @@ def generate_optimized_cv(
     suggestions      = "\n".join(f"- {s}" for s in analysis.get("suggestions", []))
     score_actuel     = analysis.get("score", "?")
 
-    # ── RAG : charge les exemples du même secteur ──────────────────────────
-    exemples_str = _load_examples(secteur, max_examples=2)
-    exemples_section = ""
-    if exemples_str:
-        exemples_section = f"""
+    exemples_str     = _load_examples(secteur, max_examples=2)
+    exemples_section = f"""
 === EXEMPLES DE CVS BIEN RÉDIGÉS (même secteur — inspire-toi du niveau et du style) ===
 {exemples_str}
 
-"""
+""" if exemples_str else ""
 
     prompt = f"""Tu es un expert en rédaction de CV et en optimisation ATS, spécialisé dans la rédaction percutante orientée résultats.
 
@@ -325,10 +327,9 @@ Suggestions d'amélioration :
         f"<!-- Secteur : {secteur or 'non détecté'} -->\n\n"
     )
 
-    # Sauvegarde standard (output/)
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
-    cv_path = output_path / f"cv_optimise_{cv_name}.md"
+    # Sauvegarde standard (output/) — chemin absolu
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    cv_path = OUTPUT_DIR / f"cv_optimise_{cv_name}.md"
     cv_path.write_text(header + cv_optimise, encoding="utf-8")
 
     # Sauvegarde dans cvs/generated/ pour le RAG
@@ -336,7 +337,7 @@ Suggestions d'amélioration :
 
     try:
         from airecruit.cv_renderer import render_cv_pdf
-        pdf_path = render_cv_pdf(str(cv_path), output_dir)
+        pdf_path = render_cv_pdf(str(cv_path), str(OUTPUT_DIR))
         return cv_path, pdf_path
     except ImportError:
         return cv_path, None

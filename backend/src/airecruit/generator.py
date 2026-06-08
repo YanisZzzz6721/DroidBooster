@@ -9,14 +9,15 @@ from airecruit.offer_parser import extract_offer_metadata
 
 load_dotenv()
 
+# Chemin absolu vers output/ — indépendant du répertoire courant d'uvicorn
+OUTPUT_DIR = Path(__file__).parent.parent.parent / "output"
+
 
 def generate_letter(match_result: dict, offer: str) -> dict:
     """
     Génère le texte de la lettre via Claude puis l'injecte dans le template DOCX.
-    Retourne les chemins des fichiers générés.
     """
-    client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-
+    client   = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
     metadata = extract_offer_metadata(offer)
 
     # Préférences utilisateur
@@ -47,7 +48,7 @@ Jamais de troisième personne. Jamais le prénom du candidat dans le corps du te
 
 FORMAT :
 Prose structurée, phrases courtes et autonomes, chacune terminée par un point.
-Maximum deux propositions par phrase, séparées par une virgule ou un connecteur naturel (et, mais, où, tandis que, car).
+Maximum deux propositions par phrase, séparées par une virgule ou un connecteur naturel.
 Aucun élément de mise en forme visuelle : pas de liste, pas de gras, pas de titre.
 Jamais de formule d'appel ni de signature.
 
@@ -102,16 +103,17 @@ Réponds uniquement avec les 3 paragraphes. Pas de formule d'appel, pas de signa
 
     corps = response.content[0].text.strip()
 
-    # Sauvegarde Markdown
-    output_dir = Path("output")
-    output_dir.mkdir(exist_ok=True)
+    # Nettoyage du cv_name — supprime les slashes si c'est un CV généré
+    cv_name_safe = match_result['cv_name'].split("/")[-1].split("\\")[-1]
+    nom_fichier  = f"lettre_{cv_name_safe}"
 
-    nom_fichier = f"lettre_{match_result['cv_name']}"
-    md_path     = output_dir / f"{nom_fichier}.md"
+    # Sauvegarde Markdown
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    md_path = OUTPUT_DIR / f"{nom_fichier}.md"
     md_path.write_text(corps, encoding="utf-8")
 
     # Injection dans le template DOCX
-    docx_path = _inject_docx(corps, match_result, metadata, output_dir, nom_fichier)
+    docx_path = _inject_docx(corps, metadata, nom_fichier)
 
     return {
         "md_path":   str(md_path),
@@ -121,10 +123,10 @@ Réponds uniquement avec les 3 paragraphes. Pas de formule d'appel, pas de signa
     }
 
 
-def _inject_docx(corps, match_result, metadata, output_dir, nom_fichier):
-    template_path = Path("templates/lettre_template.docx")
+def _inject_docx(corps: str, metadata: dict, nom_fichier: str) -> Path:
+    template_path = Path(__file__).parent.parent.parent / "templates" / "lettre_template.docx"
     if not template_path.exists():
-        raise FileNotFoundError("Template DOCX introuvable.")
+        raise FileNotFoundError(f"Template DOCX introuvable : {template_path}")
 
     doc = Document(template_path)
 
@@ -148,16 +150,14 @@ def _inject_docx(corps, match_result, metadata, output_dir, nom_fichier):
 
     for paragraph in doc.paragraphs:
         full_text = "".join(run.text for run in paragraph.runs)
-
         for placeholder, value in placeholders.items():
             if placeholder in full_text:
                 full_text = full_text.replace(placeholder, value)
-
         if paragraph.runs:
             paragraph.runs[0].text = full_text
             for run in paragraph.runs[1:]:
                 run.text = ""
 
-    docx_path = output_dir / f"{nom_fichier}.docx"
+    docx_path = OUTPUT_DIR / f"{nom_fichier}.docx"
     doc.save(docx_path)
     return docx_path
