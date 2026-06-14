@@ -1,0 +1,62 @@
+<!-- CV optimisé par AIRecruit le 14 juin 2026 -->
+<!-- Basé sur : cv_cv_restauration_tonton_gâteau_20260608 | Score ATS avant optimisation : 88/100 -->
+<!-- Secteur : restauration -->
+
+# Yanis Zouggagh
+**Équipier polyvalent**
+
+## Profil
+En année sabbatique 2026-2027, disponible immédiatement à temps plein. Étudiant ingénieur à l'INSA Strasbourg, sérieux et endurant, avec plusieurs expériences en restauration et service. Habitué aux rythmes soutenus, au travail en équipe et au respect strict des règles d'hygiène. Disponible en semaine, après-midi, soirs et week-ends.
+
+## Compétences
+**Accueil client dynamique** : Prise de commandes, encaissement, gestion flux dense
+**Préparation rapide à la minute** : Respect chaîne de froid, hygiène HACCP, produits frais
+**Service et nettoyage salle** : Maintien propreté espace travail, service client, plonge
+**Polyvalence poste complet** : Emballage, étiquetage, assemblage, adaptation cadence soutenue
+**Hygiène alimentaire stricte** : Application sécurité alimentaire, protocoles HACCP, traçabilité
+**Ouverture fermeture autonome** : Mise en place, fermeture sécurisée, respect procédures
+**Gestion stress efficace** : Rapidité d'exécution, travail sous pression, environnement dynamique
+
+## Expériences
+
+### Équipier polyvalent — BioBurger Bateliers, Strasbourg
+Août 2025 – Avril 2026
+- Accueil clients et prise de commandes produits frais biologiques en flux soutenu
+- Préparation commandes avec respect strict chaîne de froid et procédures hygiène
+- Encaissement et gestion file d'attente en coordination étroite avec équipe salle
+- Plonge, étiquetage produits et emballage préparations en respect normes HACCP
+
+### Serveur — La Couronne, Strasbourg
+Novembre 2024 – Août 2025
+- Service en salle, prise de commandes et encaissement clients en environnement dynamique
+- Préparation boissons chaudes, froides et alcoolisées au bar avec technique barista
+- Nettoyage espace travail et maintien propreté poste durant service quotidien
+- Travail en équipe soudée pour garantir expérience client de qualité chaque jour
+
+### Vendeur conseil — Banette, Poterie
+Janvier 2024 – Septembre 2024
+- Accueil chaleureux et conseil personnalisé client en boutique boulangerie artisanale
+- Encaissement et gestion file d'attente avec fluidité durant heures de pointe
+- Présentation soignée produits frais et maintien propreté espace vente quotidiennement
+- Application rigoureuse normes hygiène et sécurité alimentaire établissements restauration
+
+### Équipier polyvalent — McDonald's, Wolfisheim
+Mai 2022 – Novembre 2023
+- Prise de commandes et encaissement en environnement haute affluence forte cadence
+- Plonge, étiquetage produits et respect chaîne du froid en autonomie supervisée
+- Gestion stress quotidien et adaptation rapide aux pics d'activité soutenus
+- Autonomie sur poste avec respect strict protocoles sécurité alimentaire et HACCP
+
+## Formation
+
+### Étudiant ingénieur — INSA Strasbourg
+2022 – présent
+
+### Cambridge English C1
+2022
+
+### BAFA
+2021
+
+### Baccalauréat général — Mention Bien
+2022
