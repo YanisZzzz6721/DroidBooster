@@ -4,35 +4,35 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Variables dark mode ─────────────────────────────────────────────────── */
+/* ─── Variables thème clair ───────────────────────────────────────────────── */
 :root {
   --turquoise:      #0ABFBC;
   --turquoise-dark: #089490;
   --orange:         #E8630A;
   --orange-dark:    #C4520A;
 
-  /* Surfaces sombres */
-  --bg-page:    #0D1117;
-  --bg-surface: #161C2D;
-  --bg-raised:  #1C2337;
-  --bg-input:   #111827;
+  /* Surfaces claires */
+  --bg-page:    #F7F8FA;
+  --bg-surface: #FFFFFF;
+  --bg-raised:  #F0F2F5;
+  --bg-input:   #FFFFFF;
 
   /* Textes */
-  --fg:         #CDD5E4;
-  --fg-muted:   #768390;
-  --fg-dim:     #4A5568;
+  --fg:         #1A1F2E;
+  --fg-muted:   #5A6478;
+  --fg-dim:     #9AA3B2;
 
   /* Bordures & ombres */
-  --border-col: #2D3748;
-  --shadow-col: #080D18;
+  --border-col: #D8DCE6;
+  --shadow-col: #C8CDD8;
 
-  /* Aliases de compatibilité (gardés pour l'existant) */
-  --white:    #161C2D;   /* dark surface */
-  --black:    #0D1117;   /* page bg / très sombre */
-  --gray-100: #1C2337;
-  --gray-200: #2D3748;
-  --gray-400: #4A5578;
-  --gray-600: #768390;
+  /* Aliases de compatibilité */
+  --white:    #FFFFFF;
+  --black:    #1A1F2E;
+  --gray-100: #F0F2F5;
+  --gray-200: #D8DCE6;
+  --gray-400: #9AA3B2;
+  --gray-600: #5A6478;
 
   /* Ombres */
   --shadow:    4px 4px 0px var(--shadow-col);

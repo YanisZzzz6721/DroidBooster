@@ -40,8 +40,8 @@ export default function Skeleton({ count = 1, ...props }: SkeletonProps) {
 export function SkeletonCard() {
   return (
     <div style={{
-      border:    "2px solid var(--black)",
-      boxShadow: "4px 4px 0px var(--black)",
+      border:    "1.5px solid var(--border-col)",
+      boxShadow: "4px 4px 0px var(--shadow-col)",
       padding:   "1.25rem",
       display:   "flex",
       flexDirection: "column",

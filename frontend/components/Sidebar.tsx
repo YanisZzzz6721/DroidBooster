@@ -76,19 +76,19 @@ export default function Sidebar() {
       left:          0,
       width:         "220px",
       height:        "100vh",
-      background:    "#0B1120",
-      borderRight:   "1px solid rgba(45,55,72,0.8)",
+      background:    "var(--bg-surface)",
+      borderRight:   "1.5px solid var(--border-col)",
       display:       "flex",
       flexDirection: "column",
       zIndex:        100,
     }}>
 
       {/* Logo */}
-      <div style={{ padding: "1.5rem 1.25rem 1.25rem", borderBottom: "2px solid rgba(255,255,255,0.1)" }}>
-        <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "1.15rem", color: "var(--white)", letterSpacing: "-0.03em" }}>
+      <div style={{ padding: "1.5rem 1.25rem 1.25rem", borderBottom: "1.5px solid var(--border-col)" }}>
+        <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "1.15rem", color: "var(--fg)", letterSpacing: "-0.03em" }}>
           Droid<span style={{ color: "var(--orange)" }}>Booster</span>
         </div>
-        <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.62rem", color: "rgba(255,255,255,0.55)", marginTop: "0.2rem", textTransform: "uppercase", letterSpacing: "0.12em" }}>
+        <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.62rem", color: "var(--fg-dim)", marginTop: "0.2rem", textTransform: "uppercase", letterSpacing: "0.12em" }}>
           v1.0 — IA Candidatures
         </div>
       </div>
@@ -108,20 +108,20 @@ export default function Sidebar() {
                 padding:        "0.75rem 1.25rem",
                 textDecoration: "none",
                 borderLeft:     active ? "3px solid var(--orange)" : "3px solid transparent",
-                background:     active ? "rgba(232,99,10,0.1)" : "transparent",
+                background:     active ? "rgba(232,99,10,0.07)" : "transparent",
                 transition:     "all 0.15s ease",
               }}
-              onMouseEnter={e => { if (!active)(e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)" }}
+              onMouseEnter={e => { if (!active)(e.currentTarget as HTMLElement).style.background = "var(--bg-raised)" }}
               onMouseLeave={e => { if (!active)(e.currentTarget as HTMLElement).style.background = "transparent" }}
             >
-              <span style={{ fontSize: "1rem", color: active ? "var(--orange)" : "rgba(255,255,255,0.7)", width: "18px", textAlign: "center", flexShrink: 0 }}>
+              <span style={{ fontSize: "1rem", color: active ? "var(--orange)" : "var(--fg-dim)", width: "18px", textAlign: "center", flexShrink: 0 }}>
                 {item.icon}
               </span>
               <div>
-                <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: active ? 700 : 500, fontSize: "0.85rem", color: active ? "var(--white)" : "rgba(255,255,255,0.75)" }}>
+                <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: active ? 700 : 500, fontSize: "0.85rem", color: active ? "var(--orange)" : "var(--fg)" }}>
                   {item.label}
                 </div>
-                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.62rem", color: active ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.62rem", color: "var(--fg-dim)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                   {item.desc}
                 </div>
               </div>
@@ -131,15 +131,15 @@ export default function Sidebar() {
       </nav>
 
       {/* Compteur tokens */}
-      <div style={{ padding: "12px 16px", borderTop: "1px solid rgba(255,255,255,0.08)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+      <div style={{ padding: "12px 16px", borderTop: "1.5px solid var(--border-col)", borderBottom: "1.5px solid var(--border-col)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-          <span style={{ fontSize: 9, fontFamily: "'IBM Plex Mono', monospace", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
+          <span style={{ fontSize: 9, fontFamily: "'IBM Plex Mono', monospace", color: "var(--fg-dim)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
             Tokens utilisés
           </span>
           {stats.calls > 0 && (
             <button
               onClick={resetTokens}
-              style={{ background: "none", border: "none", cursor: "pointer", fontSize: 9, color: "rgba(255,255,255,0.25)", padding: 0, fontFamily: "'IBM Plex Mono', monospace" }}
+              style={{ background: "none", border: "none", cursor: "pointer", fontSize: 9, color: "var(--fg-dim)", padding: 0, fontFamily: "'IBM Plex Mono', monospace" }}
               title="Remettre à zéro"
             >
               reset
@@ -148,38 +148,32 @@ export default function Sidebar() {
         </div>
 
         {stats.calls === 0 ? (
-          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", fontFamily: "'IBM Plex Mono', monospace" }}>
+          <div style={{ fontSize: 11, color: "var(--fg-dim)", fontFamily: "'IBM Plex Mono', monospace" }}>
             Aucun appel encore
           </div>
         ) : (
           <>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-              <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", color: "rgba(255,255,255,0.5)" }}>
-                In
-              </span>
+              <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", color: "var(--fg-muted)" }}>In</span>
               <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", color: "var(--turquoise)", fontWeight: 600 }}>
                 {formatTokens(stats.input)}
               </span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-              <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", color: "rgba(255,255,255,0.5)" }}>
-                Out
-              </span>
+              <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", color: "var(--fg-muted)" }}>Out</span>
               <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", color: "var(--turquoise)", fontWeight: 600 }}>
                 {formatTokens(stats.output)}
               </span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-              <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", color: "rgba(255,255,255,0.5)" }}>
-                Appels
-              </span>
-              <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", color: "rgba(255,255,255,0.6)" }}>
+              <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", color: "var(--fg-muted)" }}>Appels</span>
+              <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", color: "var(--fg)" }}>
                 {stats.calls}
               </span>
             </div>
-            <div style={{ marginTop: 6, padding: "4px 8px", background: "rgba(232,99,10,0.15)", border: "1px solid rgba(232,99,10,0.3)" }}>
+            <div style={{ marginTop: 6, padding: "4px 8px", background: "rgba(232,99,10,0.08)", border: "1px solid rgba(232,99,10,0.2)" }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", color: "rgba(255,255,255,0.4)" }}>
+                <span style={{ fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", color: "var(--fg-muted)" }}>
                   Coût estimé
                 </span>
                 <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", color: "var(--orange)", fontWeight: 700 }}>
@@ -193,7 +187,7 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div style={{ padding: "1rem 1.25rem" }}>
-        <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.62rem", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.08em", lineHeight: 1.7 }}>
+        <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.62rem", color: "var(--fg-dim)", textTransform: "uppercase", letterSpacing: "0.08em", lineHeight: 1.7 }}>
           Powered by<br />
           <span style={{ color: "var(--orange)", fontWeight: 600 }}>Anthropic Claude</span>
         </div>
