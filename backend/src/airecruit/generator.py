@@ -209,6 +209,8 @@ p3 (4 phrases exactement) : Valeur ajoutée spécifique + disponibilité + ouver
 - Pas de formule d'appel ni de signature
 - Jamais inventer une compétence absente des FAITS VÉRIFIABLES ci-dessus
 - INTERDIT ABSOLU : ne jamais citer de dates, d'années, de mois ou de périodes (pas de "de 2022 à 2024", pas de "en 2023", pas de "depuis X ans", pas de "pendant 2 ans"). Les dates appartiennent au CV, pas à la lettre.
+- INTERDIT ABSOLU : ne jamais utiliser le tiret long —, le tiret court -, ou tout tiret comme ponctuation de liste ou d'incise. Remplacer par des virgules, des points ou reformuler la phrase.
+- INTERDIT : les énumérations avec tirets ou traits d'union comme séparateurs stylistiques
 - Parler des expériences par leur nature et leur impact, jamais par leur durée ou leurs dates
 - Nommer l'entreprise dans p1 ET dans p3
 - Zéro mot interdit de la liste ci-dessus
