@@ -5,11 +5,13 @@ import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 
 const NAV = [
-  { href: "/",         label: "Générer",    icon: "⚡", desc: "Lettre & CV"    },
-  { href: "/optimize", label: "Optimiser",  icon: "◈",  desc: "Analyse ATS"   },
+  { href: "/",         label: "Pipeline",   icon: "⚡", desc: "Complet auto"   },
+  { href: "/lettre",   label: "Lettre",     icon: "✉",  desc: "LM dédiée"     },
+  { href: "/cv",       label: "CV",         icon: "◈",  desc: "CV optimisé"   },
+  { href: "/optimize", label: "Optimiser",  icon: "⊕",  desc: "Analyse ATS"   },
   { href: "/export",   label: "Exporter",   icon: "↓",  desc: "CV → DOCX"     },
   { href: "/search",   label: "Rechercher", icon: "◎",  desc: "Offres emploi"  },
-  { href: "/history",  label: "Historique", icon: "◎",  desc: "Candidatures"  },
+  { href: "/history",  label: "Historique", icon: "≡",  desc: "Candidatures"  },
   { href: "/rag",      label: "RAG",        icon: "⬡",  desc: "Base apprent." },
 ]
 

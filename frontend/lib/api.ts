@@ -92,9 +92,51 @@ export async function deleteHistory(id: number) {
 }
  
 // ─── CVS ─────────────────────────────────────────────────────────────────────────
- 
+
 export async function getCvs() {
   const res = await fetch(`${API}/cvs`)
   if (!res.ok) throw new Error("Erreur chargement CVs")
+  return res.json()
+}
+
+// ─── LETTRE DE MOTIVATION ────────────────────────────────────────────────────────
+
+export async function generateLetter(offerText: string, cvName: string, preferences: string) {
+  const res = await fetch(`${API}/generate-letter`, {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({ offre_texte: offerText, cv_name: cvName, preferences }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Erreur inconnue" }))
+    throw new Error(err.detail || `Erreur ${res.status}`)
+  }
+  return res.json()
+}
+
+export function getDownloadLettreUrl(filename: string) {
+  return `${API}/download-lettre/${filename}`
+}
+
+// ─── GÉNÉRATION CV ───────────────────────────────────────────────────────────────
+
+export async function generateCv(offerText: string, cvContent: string, cvName: string, preferences: string) {
+  const res = await fetch(`${API}/generate-cv`, {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({ offre_texte: offerText, cv_content: cvContent, cv_name: cvName, preferences }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Erreur inconnue" }))
+    throw new Error(err.detail || `Erreur ${res.status}`)
+  }
+  return res.json()
+}
+
+// ─── RAG STATS ───────────────────────────────────────────────────────────────────
+
+export async function getRagStats() {
+  const res = await fetch(`${API}/rag/stats`)
+  if (!res.ok) throw new Error("Erreur chargement stats RAG")
   return res.json()
 }

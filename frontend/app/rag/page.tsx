@@ -1,175 +1,189 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import Card from "@/components/Card"
 import { SkeletonStatRow } from "@/components/Skeleton"
+import { getRagStats } from "@/lib/api"
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
-
-interface SecteurStat {
-  secteur:      string
-  total:        number
-  score_moyen:  number
+interface SecteurStat { secteur: string; total: number; score_moyen: number }
+interface RagStats {
+  cvs:     { total: number; score_moyen: number; par_secteur: SecteurStat[] }
+  lettres: { total: number; score_moyen: number; par_secteur: SecteurStat[] }
 }
 
-const SECTEUR_COLORS: Record<string, string> = {
-  restauration: "var(--orange)",
-  accueil:      "var(--turquoise)",
-  logistique:   "#8b5cf6",
-  distribution: "#059669",
-  animation:    "#db2777",
-  informatique: "#2563eb",
-  autre:        "var(--gray-400)",
+function ScoreDot({ score }: { score: number }) {
+  const color = score >= 85 ? "var(--turquoise)" : score >= 70 ? "var(--orange)" : "#e05252"
+  return <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: color, marginRight: "0.4rem", flexShrink: 0 }} />
 }
 
-function ScoreBadge({ score }: { score: number }) {
-  const color = score >= 85 ? "var(--turquoise)" : score >= 70 ? "var(--orange)" : "#c0392b"
+function MiniBar({ value, max = 100, color = "var(--turquoise)" }: { value: number; max?: number; color?: string }) {
   return (
-    <span style={{
-      fontFamily:  "'IBM Plex Mono', monospace",
-      fontSize:    "0.75rem",
-      fontWeight:  700,
-      color,
-      background:  "var(--white)",
-      border:      `2px solid ${color}`,
-      padding:     "0.1rem 0.45rem",
-    }}>
-      {score}/100
-    </span>
+    <div style={{ height: 4, background: "var(--bg-input)", border: "1px solid var(--border-col)", flex: 1, position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", inset: 0, width: `${Math.min(100, (value / max) * 100)}%`, background: color, transition: "width 0.6s ease" }} />
+    </div>
   )
 }
 
-function MiniBar({ value, max }: { value: number; max: number }) {
-  const pct = max > 0 ? Math.round((value / max) * 100) : 0
+function SecteurTable({ rows, emptyLabel, accentColor }: { rows: SecteurStat[]; emptyLabel: string; accentColor: string }) {
+  if (rows.length === 0) {
+    return (
+      <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
+        <div style={{ fontSize: "2rem", marginBottom: "0.75rem" }}>⬡</div>
+        <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: "0.9rem", color: "var(--fg-muted)" }}>
+          {emptyLabel}
+        </div>
+        <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", color: "var(--fg-dim)", marginTop: "0.4rem" }}>
+          Lance une génération pour alimenter la base
+        </div>
+      </div>
+    )
+  }
+  const maxTotal = Math.max(...rows.map(r => r.total), 1)
   return (
-    <div style={{ height: 6, background: "var(--gray-200)", width: "100%", border: "1px solid var(--gray-300)" }}>
-      <div style={{ height: "100%", width: `${pct}%`, background: "var(--orange)", transition: "width 0.4s ease" }} />
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+      {rows.map((row, i) => (
+        <div key={row.secteur} className={`animate-in stagger-${Math.min(i + 1, 8)}`} style={{
+          display: "grid", gridTemplateColumns: "120px 1fr 60px 70px",
+          alignItems: "center", gap: "1rem",
+          padding: "0.6rem 0.75rem",
+          background: "var(--bg-input)", border: "1px solid var(--border-col)",
+        }}>
+          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.75rem", color: "var(--fg)", textTransform: "capitalize" }}>
+            {row.secteur}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <MiniBar value={row.total} max={maxTotal} color={accentColor} />
+            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.7rem", color: "var(--fg-muted)", minWidth: "24px" }}>
+              {row.total}
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <ScoreDot score={row.score_moyen || 0} />
+            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.75rem", color: "var(--fg)" }}>
+              {row.score_moyen ?? "—"}
+            </span>
+          </div>
+          <div style={{
+            fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.65rem",
+            background: (row.score_moyen || 0) >= 80 ? "rgba(10,191,188,0.12)" : "rgba(232,99,10,0.12)",
+            color: (row.score_moyen || 0) >= 80 ? "var(--turquoise)" : "var(--orange)",
+            border: `1px solid ${(row.score_moyen || 0) >= 80 ? "rgba(10,191,188,0.3)" : "rgba(232,99,10,0.3)"}`,
+            padding: "0.15rem 0.4rem", textAlign: "center",
+          }}>
+            {(row.score_moyen || 0) >= 80 ? "FORT" : "BON"}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
 
 export default function RagPage() {
-  const [stats,   setStats]   = useState<SecteurStat[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error,   setError]   = useState("")
+  const [stats,     setStats]     = useState<RagStats | null>(null)
+  const [loading,   setLoading]   = useState(true)
+  const [error,     setError]     = useState("")
+  const [activeTab, setActiveTab] = useState<"cvs" | "lettres">("cvs")
 
   useEffect(() => {
-    fetch(`${API}/rag/stats`)
-      .then(r => {
-        if (!r.ok) throw new Error(`Erreur ${r.status}`)
-        return r.json()
-      })
-      .then(data => setStats(data.stats))
-      .catch(e  => setError(e.message))
-      .finally(()=> setLoading(false))
+    getRagStats()
+      .then(setStats)
+      .catch(() => setError("Impossible de charger les stats RAG."))
+      .finally(() => setLoading(false))
   }, [])
 
-  const totalCvs   = stats.reduce((s, r) => s + r.total, 0)
-  const maxTotal   = Math.max(...stats.map(r => r.total), 1)
-  const scoreMoyen = stats.length
-    ? Math.round(stats.reduce((s, r) => s + r.score_moyen * r.total, 0) / Math.max(totalCvs, 1))
-    : 0
+  const current = stats ? (activeTab === "cvs" ? stats.cvs : stats.lettres) : null
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
 
-      {/* Header */}
+      {/* ── Header ── */}
       <div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.3rem" }}>
           <span style={{
-            fontFamily: "'IBM Plex Mono', monospace",
-            fontSize:   "0.72rem",
-            background: "var(--black)",
-            color:      "var(--white)",
-            padding:    "0.15rem 0.5rem",
-            border:     "1.5px solid var(--black)",
-          }}>
-            RAG
+            fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem",
+            background: "var(--bg-raised)", color: "var(--turquoise)",
+            padding: "0.15rem 0.5rem", border: "1.5px solid var(--turquoise)",
+          }}>RAG</span>
+          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.65rem", color: "var(--fg-dim)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+            Base d'apprentissage · CVs + Lettres
           </span>
         </div>
-        <h1 style={{ fontSize: "1.8rem", marginBottom: "0.3rem" }}>Base d'apprentissage</h1>
-        <p style={{ color: "var(--gray-600)", fontSize: "0.88rem" }}>
-          CVs optimisés stockés par secteur — utilisés comme exemples pour améliorer les prochaines générations.
+        <h1 style={{ fontSize: "1.8rem", marginBottom: "0.3rem", color: "var(--fg)" }}>Base RAG</h1>
+        <p style={{ color: "var(--fg-muted)", fontSize: "0.88rem" }}>
+          Chaque CV et lettre de qualité ≥ 75/100 est sauvegardé ici. Les générations futures s'appuient sur cette base pour s'améliorer automatiquement.
         </p>
       </div>
 
-      {/* Résumé global */}
-      {!loading && !error && stats.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
+      {/* ── Compteurs globaux ── */}
+      {loading ? (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem" }}>
+          {[...Array(4)].map((_, i) => <SkeletonStatRow key={i} />)}
+        </div>
+      ) : error ? (
+        <div style={{ padding: "0.75rem 1rem", border: "1.5px solid #e05252", background: "rgba(224,82,82,0.08)", color: "#e05252", fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.8rem" }}>
+          ✗ {error}
+        </div>
+      ) : stats && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem" }}>
           {[
-            { label: "CVs générés",   value: totalCvs,                   color: "var(--turquoise)" },
-            { label: "Secteurs",      value: stats.length,               color: "var(--orange)"    },
-            { label: "Score moyen",   value: `${scoreMoyen}/100`,        color: scoreMoyen >= 85 ? "var(--turquoise)" : "var(--orange)" },
-          ].map(({ label, value, color }) => (
-            <div key={label} style={{
-              border:     "2px solid var(--black)",
-              boxShadow:  "4px 4px 0px var(--black)",
-              padding:    "1rem",
-              background: "var(--white)",
-              textAlign:  "center",
+            { label: "CVs générés",      value: stats.cvs.total,                          color: "var(--turquoise)", icon: "◈" },
+            { label: "Score moyen CVs",  value: `${stats.cvs.score_moyen ?? "—"}/100`,    color: "var(--turquoise)", icon: "◎" },
+            { label: "Lettres générées", value: stats.lettres.total,                       color: "var(--orange)",    icon: "✉" },
+            { label: "Score moyen LM",   value: `${stats.lettres.score_moyen ?? "—"}/100`, color: "var(--orange)",   icon: "◎" },
+          ].map((stat, i) => (
+            <div key={stat.label} className={`animate-pop stagger-${i + 1}`} style={{
+              border: "1.5px solid var(--border-col)", background: "var(--bg-surface)",
+              boxShadow: "4px 4px 0px var(--shadow-col)", padding: "1.25rem",
             }}>
-              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.65rem", color: "var(--gray-400)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.3rem" }}>
-                {label}
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.65rem", color: "var(--fg-dim)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.5rem" }}>
+                {stat.icon} {stat.label}
               </div>
-              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "2rem", color, lineHeight: 1 }}>
-                {value}
+              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, fontSize: "1.8rem", color: stat.color, lineHeight: 1 }}>
+                {stat.value}
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Skeleton loading */}
-      {loading && (
-        <div className="animate-in" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {[1,2,3].map(i => <SkeletonStatRow key={i} />)}
-        </div>
-      )}
-      {error && (
-        <div style={{ padding: "0.75rem 1rem", border: "2px solid #c0392b", background: "#fdf0f0", fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.8rem", color: "#c0392b" }}>
-          ✗ {error}
-        </div>
-      )}
-      {!loading && !error && stats.length === 0 && (
-        <div className="empty-state">
-          <span className="empty-state-icon">⬡</span>
-          <span className="empty-state-title">Base RAG vide</span>
-          <span className="empty-state-desc">
-            Aucun CV optimisé en base.<br />
-            Lance un pipeline complet pour alimenter le RAG.
-          </span>
-        </div>
-      )}
+      {/* ── Onglets CVs / Lettres ── */}
+      <div className="tab-bar">
+        {[
+          { key: "cvs",     label: `◈ CVs (${stats?.cvs.total ?? 0})` },
+          { key: "lettres", label: `✉ Lettres (${stats?.lettres.total ?? 0})` },
+        ].map(t => (
+          <button key={t.key} className={`tab ${activeTab === t.key ? "active" : ""}`}
+            onClick={() => setActiveTab(t.key as "cvs" | "lettres")}>
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-      {/* Tableau par secteur */}
-      {!loading && !error && stats.length > 0 && (
-        <Card title="CVs par secteur" tag="BASE RAG" tagColor="turquoise">
-          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-            {stats.map((row, idx) => (
-              <div key={row.secteur} className={`animate-in stagger-${Math.min(idx + 1, 8)}`} style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-                    <span style={{
-                      display:    "inline-block",
-                      width:       10,
-                      height:      10,
-                      background: SECTEUR_COLORS[row.secteur] || "var(--gray-400)",
-                      border:     "1.5px solid var(--black)",
-                      flexShrink: 0,
-                    }} />
-                    <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: "0.88rem", textTransform: "capitalize" }}>
-                      {row.secteur}
-                    </span>
-                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.7rem", color: "var(--gray-400)" }}>
-                      {row.total} CV{row.total > 1 ? "s" : ""}
-                    </span>
-                  </div>
-                  <ScoreBadge score={row.score_moyen} />
+      {/* ── Table par secteur ── */}
+      {loading ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          {[...Array(4)].map((_, i) => <SkeletonStatRow key={i} />)}
+        </div>
+      ) : current && (
+        <Card
+          title={activeTab === "cvs" ? "CVs par secteur" : "Lettres par secteur"}
+          tag={`${current.par_secteur.length} secteur${current.par_secteur.length > 1 ? "s" : ""}`}
+          tagColor={activeTab === "cvs" ? "turquoise" : "orange"}
+        >
+          {current.par_secteur.length > 0 && (
+            <div style={{ display: "grid", gridTemplateColumns: "120px 1fr 60px 70px", gap: "1rem", padding: "0.3rem 0.75rem", marginBottom: "0.25rem", borderBottom: "1px solid var(--border-col)" }}>
+              {["Secteur", "Volume", "Score", "Niveau"].map(h => (
+                <div key={h} style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.62rem", color: "var(--fg-dim)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                  {h}
                 </div>
-                <MiniBar value={row.total} max={maxTotal} />
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
+          <SecteurTable
+            rows={current.par_secteur}
+            emptyLabel={activeTab === "cvs" ? "Aucun CV dans la base" : "Aucune lettre dans la base"}
+            accentColor={activeTab === "cvs" ? "var(--turquoise)" : "var(--orange)"}
+          />
         </Card>
       )}
 
