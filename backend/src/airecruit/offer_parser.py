@@ -63,8 +63,11 @@ def extract_offer_metadata(offer: str) -> dict:
     if not result["poste"] or not result["entreprise"]:
         result = _extract_claude(offer)
 
-    # Détection secteur — toujours par keywords d'abord
-    result["secteur"] = _detect_secteur(offer, result.get("poste", ""))
+    # Détection secteur — keywords d'abord, Claude en fallback si "autre"
+    secteur = _detect_secteur(offer, result.get("poste", ""))
+    if secteur == "autre":
+        secteur = _detect_secteur_claude(offer, result.get("poste", ""))
+    result["secteur"] = secteur
 
     return result
 
@@ -90,6 +93,36 @@ def _detect_secteur(offer: str, poste: str = "") -> str:
         return "autre"
 
     return meilleur
+
+
+def _detect_secteur_claude(offer: str, poste: str = "") -> str:
+    """
+    Fallback Claude si aucun keyword ne matche.
+    Retourne un secteur parmi SECTEURS, ou "autre".
+    """
+    client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+    secteurs_liste = ", ".join(s for s in SECTEURS if s != "autre")
+
+    prompt = f"""Lis cette offre d'emploi et classe-la dans l'un de ces secteurs : {secteurs_liste}, autre.
+
+Poste : {poste or "non précisé"}
+
+Offre :
+\"\"\"{offer[:1500]}\"\"\"
+
+Réponds UNIQUEMENT avec le nom du secteur, en minuscules, sans ponctuation ni explication."""
+
+    try:
+        response = client.messages.create(
+            model=MODEL,
+            max_tokens=20,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        secteur = response.content[0].text.strip().lower()
+        return secteur if secteur in SECTEURS else "autre"
+    except Exception:
+        return "autre"
 
 
 def _extract_regex(offer: str) -> dict:
