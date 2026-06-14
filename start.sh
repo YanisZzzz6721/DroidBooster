@@ -26,12 +26,30 @@ FRONTEND="$DIR/frontend"
 # ── Aide
 if [[ "$1" == "--help" || "$1" == "-h" ]]; then
   echo -e "${BOLD}Usage :${NC}"
-  echo "  ./start.sh          → Lance backend + frontend (réseau local)"
-  echo "  ./start.sh local    → Lance en localhost uniquement"
+  echo "  ./start.sh          → Lance backend + frontend (accessible réseau local)"
+  echo "  ./start.sh local    → Lance en localhost uniquement (ce Mac)"
   echo "  ./start.sh test     → Lance les tests unitaires"
   echo "  ./start.sh backend  → Lance uniquement le backend"
   echo "  ./start.sh frontend → Lance uniquement le frontend"
+  echo "  ./start.sh ip       → Affiche juste l'IP réseau"
   echo ""
+  echo -e "${BOLD}Depuis ton PC Linux :${NC}"
+  echo "  Ouvre http://<IP_MAC>:3000 dans le navigateur"
+  echo "  (l'IP s'affiche au démarrage)"
+  echo ""
+  exit 0
+fi
+
+# ════════════════════════════════════════
+# MODE IP ONLY
+# ════════════════════════════════════════
+if [[ "$1" == "ip" ]]; then
+  IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "introuvable")
+  echo -e "${BOLD}IP réseau de ce Mac :${NC}"
+  echo -e "  ${GREEN}→ Frontend : http://${IP}:3000${NC}"
+  echo -e "  ${GREEN}→ Backend  : http://${IP}:8000${NC}"
+  echo ""
+  echo -e "${TURQUOISE}Lance ./start.sh pour démarrer le site en réseau.${NC}"
   exit 0
 fi
 
@@ -72,6 +90,12 @@ fi
 ENV_LOCAL="$FRONTEND/.env.local"
 echo "NEXT_PUBLIC_API_URL=http://${HOST}:8000" > "$ENV_LOCAL"
 echo -e "${TURQUOISE}✓ API configurée → http://${HOST}:8000${NC}"
+
+# Vide le cache Next.js automatiquement
+if [ -d "$FRONTEND/.next" ]; then
+  rm -rf "$FRONTEND/.next"
+  echo -e "${TURQUOISE}✓ Cache Next.js vidé${NC}"
+fi
 
 # ════════════════════════════════════════
 # VÉRIFICATIONS
