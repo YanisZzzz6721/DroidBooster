@@ -72,13 +72,13 @@ export default function Optimize() {
             fontFamily: "'IBM Plex Mono', monospace",
             fontSize:   "0.72rem",
             background: "var(--turquoise)",
-            color:      "var(--white)",
+            color: "#fff",
             padding:    "0.15rem 0.5rem",
-            border:     "1.5px solid var(--black)",
+            border: "1.5px solid var(--border-col)",
           }}>ATS</span>
         </div>
         <h1 style={{ fontSize: "1.8rem", marginBottom: "0.3rem" }}>Optimiser un CV</h1>
-        <p style={{ color: "var(--gray-600)", fontSize: "0.88rem" }}>
+        <p style={{ color: "var(--fg-muted)", fontSize: "0.88rem" }}>
           Colle ton CV et l'offre d'emploi — obtiens un score ATS et une version optimisée téléchargeable.
         </p>
       </div>
@@ -100,7 +100,7 @@ export default function Optimize() {
             <div style={{
               fontFamily: "'IBM Plex Mono', monospace",
               fontSize:   "0.65rem",
-              color:      "var(--gray-400)",
+              color: "var(--fg-dim)",
               textTransform: "uppercase",
               letterSpacing: "0.08em",
             }}>
@@ -122,7 +122,7 @@ export default function Optimize() {
             <div>
               <label className="label" style={{ marginBottom: "0.3rem" }}>
                 Préférences{" "}
-                <span style={{ color: "var(--gray-400)", textTransform: "none", letterSpacing: 0 }}>
+                <span style={{ color: "var(--fg-dim)", textTransform: "none", letterSpacing: 0 }}>
                   (optionnel)
                 </span>
               </label>
@@ -143,12 +143,12 @@ export default function Optimize() {
       {error && (
         <div style={{
           padding:    "0.75rem 1rem",
-          border:     "2px solid #c0392b",
-          background: "#fdf0f0",
+          border: "1.5px solid #e05252",
+          background: "rgba(224,82,82,0.08)",
           fontFamily: "'IBM Plex Mono', monospace",
           fontSize:   "0.8rem",
-          color:      "#c0392b",
-          boxShadow:  "3px 3px 0px #c0392b",
+          color: "#e05252",
+          boxShadow: "3px 3px 0px #e05252",
         }}>
           ✗ {error}
         </div>
@@ -172,7 +172,7 @@ export default function Optimize() {
                 <p style={{
                   fontFamily: "'IBM Plex Mono', monospace",
                   fontSize:   "0.78rem",
-                  color:      "var(--gray-600)",
+                  color: "var(--fg-muted)",
                   lineHeight: 1.6,
                 }}>
                   {result.summary}
@@ -182,9 +182,9 @@ export default function Optimize() {
 
             {/* Download bloc */}
             <div style={{
-              border:      "2px solid var(--black)",
-              boxShadow:   "4px 4px 0px var(--black)",
-              background:  "#0D2137",
+              border: "1.5px solid var(--border-col)",
+              boxShadow: "4px 4px 0px var(--shadow-col)",
+              background: "var(--bg-raised)",
               padding:     "1.5rem",
               display:     "flex",
               flexDirection: "column",
@@ -207,7 +207,7 @@ export default function Optimize() {
                   fontFamily:    "'Space Grotesk', sans-serif",
                   fontWeight:    700,
                   fontSize:      "0.8rem",
-                  color:         "var(--white)",
+                  color: "#fff",
                   marginBottom:  "0.2rem",
                 }}>
                   CV optimisé
@@ -227,7 +227,7 @@ export default function Optimize() {
                 onClick={() => downloadMd(result.cv_optimise_md)}
                 style={{
                   background: "var(--orange)",
-                  color:      "var(--white)",
+                  color: "#fff",
                   boxShadow:  "3px 3px 0px rgba(255,255,255,0.2)",
                 }}
               >
@@ -263,7 +263,7 @@ export default function Optimize() {
                     <KeywordBadge key={k} word={k} variant="found" />
                   ))}
                   {result.keywords_found.length === 0 && (
-                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.75rem", color: "var(--gray-400)" }}>
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.75rem", color: "var(--fg-dim)" }}>
                       Aucun mot-clé détecté
                     </span>
                   )}
@@ -294,9 +294,9 @@ export default function Optimize() {
                       fontFamily: "'IBM Plex Mono', monospace",
                       fontSize:   "0.72rem",
                       background: "var(--orange)",
-                      color:      "var(--white)",
+                      color: "#fff",
                       padding:    "0.1rem 0.4rem",
-                      border:     "1.5px solid var(--black)",
+                      border: "1.5px solid var(--border-col)",
                       flexShrink: 0,
                       marginTop:  "0.1rem",
                     }}>
@@ -305,7 +305,7 @@ export default function Optimize() {
                     <span style={{
                       fontFamily: "'Inter', sans-serif",
                       fontSize:   "0.84rem",
-                      color:      "var(--black)",
+                      color: "var(--fg)",
                       lineHeight: 1.6,
                     }}>
                       {s}

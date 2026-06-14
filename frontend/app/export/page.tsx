@@ -65,7 +65,7 @@ function InputField({ label, value, onChange, mono = false, style = {} }: {
 }) {
   return (
     <div style={{ marginBottom: 12 }}>
-      <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, color: "var(--gray-text)" }}>
+      <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, color: "var(--fg-muted)" }}>
         {label}
       </label>
       <input
@@ -73,9 +73,9 @@ function InputField({ label, value, onChange, mono = false, style = {} }: {
         onChange={e => onChange(e.target.value)}
         style={{
           width: "100%", padding: "8px 12px",
-          border: "2px solid var(--black)",
+          border: "1.5px solid var(--border-col)",
           fontFamily: mono ? "'IBM Plex Mono', monospace" : "'Space Grotesk', sans-serif",
-          fontSize: 13, background: "var(--white)", outline: "none",
+          fontSize: 13, background: "var(--bg-surface)", outline: "none",
           boxSizing: "border-box", ...style
         }}
       />
@@ -88,7 +88,7 @@ function TextareaField({ label, value, onChange, rows = 3 }: {
 }) {
   return (
     <div style={{ marginBottom: 12 }}>
-      <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, color: "var(--gray-text)" }}>
+      <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, color: "var(--fg-muted)" }}>
         {label}
       </label>
       <textarea
@@ -97,9 +97,9 @@ function TextareaField({ label, value, onChange, rows = 3 }: {
         rows={rows}
         style={{
           width: "100%", padding: "8px 12px",
-          border: "2px solid var(--black)",
+          border: "1.5px solid var(--border-col)",
           fontFamily: "'IBM Plex Mono', monospace",
-          fontSize: 12, background: "var(--white)", outline: "none",
+          fontSize: 12, background: "var(--bg-surface)", outline: "none",
           resize: "vertical", boxSizing: "border-box"
         }}
       />
@@ -114,7 +114,7 @@ function ExpEditor({ exp, idx, onChange }: {
   onChange: (idx: number, field: string, value: any) => void
 }) {
   return (
-    <div style={{ border: "1px solid var(--gray)", padding: 16, marginBottom: 12, background: "#FAFAF8" }}>
+    <div style={{ border: "1px solid var(--border-col)", padding: 16, marginBottom: 12, background: "var(--bg-surface)" }}>
       <div style={{ fontSize: 11, fontWeight: 700, color: "var(--orange)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.1em" }}>
         Expérience {idx + 1}
       </div>
@@ -375,14 +375,14 @@ export default function ExportPage() {
         <h1 style={{ fontSize: 28, fontWeight: 700, marginTop: 8 }}>
           CV <span style={{ color: "var(--turquoise)" }}>→</span> DOCX
         </h1>
-        <p style={{ color: "var(--gray-text)", marginTop: 6, fontSize: 14 }}>
+        <p style={{ color: "var(--fg-muted)", marginTop: 6, fontSize: 14 }}>
           Colle ton CV en Markdown, edite les champs, génère le DOCX.
         </p>
       </div>
 
       {/* ══ ÉTAPE 1 — INPUT MARKDOWN ══ */}
-      <div style={{ border: "2px solid var(--black)", boxShadow: "4px 4px 0 var(--black)", marginBottom: 24 }}>
-        <div style={{ padding: "12px 20px", borderBottom: "2px solid var(--black)", background: "var(--black)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ border: "1.5px solid var(--border-col)", boxShadow: "4px 4px 0 var(--shadow-col)", marginBottom: 24 }}>
+        <div style={{ padding: "12px 20px", borderBottom: "1.5px solid var(--border-col)", background: "var(--bg-raised)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "0.1em", textTransform: "uppercase" }}>
             Etape 1 — Ton CV Markdown
           </span>
@@ -405,7 +405,7 @@ export default function ExportPage() {
               style={{
                 width: "100%", padding: 16, border: "none", outline: "none",
                 resize: "vertical", fontFamily: "'IBM Plex Mono', monospace",
-                fontSize: 12, background: "var(--white)", boxSizing: "border-box",
+                fontSize: 12, background: "var(--bg-surface)", boxSizing: "border-box",
               }}
               placeholder={"# Prénom NOM\n**Titre du poste**\n\n## Profil\n...\n\n## Competences\n**Label** : description\n\n## Experiences\n### Poste — Entreprise\nDate\n- bullet\n\n## Formation\n..."}
             />
@@ -428,7 +428,7 @@ export default function ExportPage() {
         )}
 
         {step === "edit" && cvData && (
-          <div style={{ padding: "12px 20px", background: "#edfafa", fontSize: 13, color: "var(--turquoise)", fontFamily: "'IBM Plex Mono', monospace" }}>
+          <div style={{ padding: "12px 20px", background: "rgba(10,191,188,0.1)", fontSize: 13, color: "var(--turquoise)", fontFamily: "'IBM Plex Mono', monospace" }}>
             CV parsé : <strong>{cvData.nom}</strong> — {cvData.titre}
           </div>
         )}
@@ -436,8 +436,8 @@ export default function ExportPage() {
 
       {/* ══ ÉTAPE 2 — ÉDITEUR ══ */}
       {step === "edit" && cvData && (
-        <div style={{ border: "2px solid var(--black)", boxShadow: "4px 4px 0 var(--black)", marginBottom: 24 }}>
-          <div style={{ padding: "12px 20px", borderBottom: "2px solid var(--black)", background: "var(--black)" }}>
+        <div style={{ border: "1.5px solid var(--border-col)", boxShadow: "4px 4px 0 var(--shadow-col)", marginBottom: 24 }}>
+          <div style={{ padding: "12px 20px", borderBottom: "1.5px solid var(--border-col)", background: "var(--bg-raised)" }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "0.1em", textTransform: "uppercase" }}>
               Etape 2 — Edite ton CV
             </span>
@@ -446,14 +446,14 @@ export default function ExportPage() {
           <div style={{ padding: 24 }}>
 
             {/* Nom + Titre */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24, paddingBottom: 24, borderBottom: "1px solid var(--gray)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24, paddingBottom: 24, borderBottom: "1px solid var(--border-col)" }}>
               <InputField label="Nom complet" value={cvData.nom} onChange={v => setCvData({ ...cvData, nom: v })} />
               <InputField label="Titre du poste" value={cvData.titre} onChange={v => setCvData({ ...cvData, titre: v })} />
             </div>
 
             {/* Profil */}
             {profilSec && (
-              <div style={{ marginBottom: 24, paddingBottom: 24, borderBottom: "1px solid var(--gray)" }}>
+              <div style={{ marginBottom: 24, paddingBottom: 24, borderBottom: "1px solid var(--border-col)" }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "var(--turquoise)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>
                   Profil
                 </div>
@@ -468,7 +468,7 @@ export default function ExportPage() {
 
             {/* Compétences */}
             {compSection && compSection.items && compSection.items.length > 0 && (
-              <div style={{ marginBottom: 24, paddingBottom: 24, borderBottom: "1px solid var(--gray)" }}>
+              <div style={{ marginBottom: 24, paddingBottom: 24, borderBottom: "1px solid var(--border-col)" }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "var(--turquoise)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>
                   Competences ({compSection.items.length})
                 </div>
@@ -480,7 +480,7 @@ export default function ExportPage() {
 
             {/* Expériences */}
             {expSection && expSection.items && expSection.items.length > 0 && (
-              <div style={{ marginBottom: 24, paddingBottom: 24, borderBottom: "1px solid var(--gray)" }}>
+              <div style={{ marginBottom: 24, paddingBottom: 24, borderBottom: "1px solid var(--border-col)" }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "var(--turquoise)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>
                   Experiences ({expSection.items.length})
                 </div>
@@ -536,8 +536,8 @@ export default function ExportPage() {
 
       {/* ══ ÉTAPE 3 — TEMPLATE + EXPORT ══ */}
       {step === "edit" && (
-        <div style={{ border: "2px solid var(--black)", boxShadow: "4px 4px 0 var(--black)", marginBottom: 24 }}>
-          <div style={{ padding: "12px 20px", borderBottom: "2px solid var(--black)", background: "var(--black)" }}>
+        <div style={{ border: "1.5px solid var(--border-col)", boxShadow: "4px 4px 0 var(--shadow-col)", marginBottom: 24 }}>
+          <div style={{ padding: "12px 20px", borderBottom: "1.5px solid var(--border-col)", background: "var(--bg-raised)" }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "0.1em", textTransform: "uppercase" }}>
               Etape 3 — Template et telechargement
             </span>
@@ -547,11 +547,11 @@ export default function ExportPage() {
             {/* Upload template */}
             <label style={{
               display: "flex", alignItems: "center", gap: 16, padding: "16px 20px",
-              border: "2px dashed var(--gray)", cursor: "pointer",
-              background: templateFile ? "#edfafa" : "var(--white)",
+              border: "1.5px dashed var(--border-col)", cursor: "pointer",
+              background: templateFile ? "rgba(10,191,188,0.1)" : "var(--bg-raised)",
             }}>
               <span style={{ fontSize: 24 }}>📎</span>
-              <span style={{ fontSize: 14, color: templateFile ? "var(--turquoise)" : "var(--gray-text)" }}>
+              <span style={{ fontSize: 14, color: templateFile ? "var(--turquoise)" : "var(--fg-muted)" }}>
                 {templateFile ? `${templateName} — Prêt` : "Clique pour choisir ton template .docx"}
               </span>
               <input ref={tplInputRef} type="file" accept=".docx" style={{ display: "none" }} onChange={handleTemplateFile} />
@@ -559,7 +559,7 @@ export default function ExportPage() {
 
             {/* Lieu */}
             <div>
-              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6, color: "var(--gray-text)" }}>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6, color: "var(--fg-muted)" }}>
                 Entreprise / Lieu (optionnel — pour nommer le fichier)
               </label>
               <input
@@ -568,15 +568,15 @@ export default function ExportPage() {
                 placeholder="Ex : McDonald's Wolfisheim, Tonton Gateau..."
                 style={{
                   width: "100%", padding: "10px 14px",
-                  border: "2px solid var(--black)",
+                  border: "1.5px solid var(--border-col)",
                   fontFamily: "'IBM Plex Mono', monospace",
-                  fontSize: 13, background: "var(--white)", outline: "none",
+                  fontSize: 13, background: "var(--bg-surface)", outline: "none",
                 }}
               />
             </div>
 
             {error && (
-              <div style={{ background: "#fff0f0", border: "2px solid #e00", color: "#c00", padding: "12px 16px", fontSize: 13 }}>
+              <div style={{ background: "rgba(224,82,82,0.08)", border: "1.5px solid #e05252", color: "#e05252", padding: "12px 16px", fontSize: 13 }}>
                 {error}
               </div>
             )}
@@ -586,11 +586,11 @@ export default function ExportPage() {
             </PushButton>
 
             {downloadUrl && (
-              <div style={{ border: "2px solid var(--turquoise)", boxShadow: "4px 4px 0 var(--turquoise)", background: "#edfafa", padding: "16px 20px", display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ border: "2px solid var(--turquoise)", boxShadow: "4px 4px 0 var(--turquoise)", background: "rgba(10,191,188,0.1)", padding: "16px 20px", display: "flex", alignItems: "center", gap: 16 }}>
                 <div style={{ fontSize: 22, color: "var(--turquoise)", fontWeight: 700 }}>✓</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: 15 }}>{downloadName}</div>
-                  <div style={{ fontSize: 12, color: "var(--gray-text)", fontFamily: "'IBM Plex Mono', monospace", marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: "var(--fg-muted)", fontFamily: "'IBM Plex Mono', monospace", marginTop: 2 }}>
                     Généré le {new Date().toLocaleString("fr-FR")}
                   </div>
                 </div>
@@ -613,24 +613,24 @@ export default function ExportPage() {
         </div>
         {historyLoaded && (
           history.length === 0 ? (
-            <div style={{ padding: "24px", border: "2px dashed var(--gray)", color: "var(--gray-text)", textAlign: "center", fontSize: 13 }}>
+            <div style={{ padding: "24px", border: "1.5px dashed var(--border-col)", color: "var(--fg-muted)", textAlign: "center", fontSize: 13 }}>
               Aucun export.
             </div>
           ) : (
-            <div style={{ border: "2px solid var(--black)", boxShadow: "4px 4px 0 var(--black)" }}>
+            <div style={{ border: "1.5px solid var(--border-col)", boxShadow: "4px 4px 0 var(--shadow-col)" }}>
               {history.map((entry, i) => (
-                <div key={entry.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 18px", borderBottom: i < history.length - 1 ? "1px solid var(--gray)" : "none" }}>
+                <div key={entry.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 18px", borderBottom: i < history.length - 1 ? "1px solid var(--border-col)" : "none" }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 14, fontWeight: 700 }}>{entry.cv_nom}</div>
-                    <div style={{ fontSize: 12, color: "var(--gray-text)", marginTop: 2 }}>{entry.cv_titre}</div>
-                    <div style={{ fontSize: 11, color: "var(--gray-text)", fontFamily: "'IBM Plex Mono', monospace", marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: "var(--fg-muted)", marginTop: 2 }}>{entry.cv_titre}</div>
+                    <div style={{ fontSize: 11, color: "var(--fg-muted)", fontFamily: "'IBM Plex Mono', monospace", marginTop: 2 }}>
                       {formatDate(entry.created_at)} · {entry.template}
                     </div>
                   </div>
                   <a href={`${API}/export-history/${entry.id}/download`} className="btn-secondary btn-sm" style={{ textDecoration: "none" }}>↓</a>
-                  <button onClick={() => handleDelete(entry.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--gray-text)", fontSize: 15, padding: "2px 4px" }}
+                  <button onClick={() => handleDelete(entry.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--fg-muted)", fontSize: 15, padding: "2px 4px" }}
                     onMouseEnter={e => (e.currentTarget.style.color = "red")}
-                    onMouseLeave={e => (e.currentTarget.style.color = "var(--gray-text)")}>
+                    onMouseLeave={e => (e.currentTarget.style.color = "var(--fg-muted)")}>
                     x
                   </button>
                 </div>

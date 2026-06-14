@@ -87,14 +87,14 @@ export default function SearchPage() {
         <h1 style={{ fontSize: 28, fontWeight: 700 }}>
           Offres d'emploi <span style={{ color: "var(--turquoise)" }}>en direct</span>
         </h1>
-        <p style={{ color: "var(--gray-text)", marginTop: 6, fontSize: 14 }}>
+        <p style={{ color: "var(--fg-muted)", marginTop: 6, fontSize: 14 }}>
           France Travail + Indeed — Lance le pipeline en un clic sur n'importe quelle offre.
         </p>
       </div>
 
       {/* Formulaire recherche */}
-      <div style={{ border: "2px solid var(--black)", boxShadow: "4px 4px 0 var(--black)" }}>
-        <div style={{ padding: "16px 24px", borderBottom: "2px solid var(--black)", background: "var(--black)" }}>
+      <div style={{ border: "1.5px solid var(--border-col)", boxShadow: "4px 4px 0 var(--shadow-col)" }}>
+        <div style={{ padding: "16px 24px", borderBottom: "1.5px solid var(--border-col)", background: "var(--bg-raised)" }}>
           <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "0.1em", textTransform: "uppercase" }}>
             Criteres de recherche
           </span>
@@ -116,10 +116,10 @@ export default function SearchPage() {
                 placeholder="Ex : Serveur, Barman, Equpier..."
                 style={{
                   width: "100%", padding: "12px 14px",
-                  border: "2px solid var(--black)",
-                  boxShadow: "3px 3px 0 var(--black)",
+                  border: "1.5px solid var(--border-col)",
+                  boxShadow: "3px 3px 0 var(--shadow-col)",
                   fontFamily: "'Space Grotesk', sans-serif",
-                  fontSize: 14, background: "var(--white)",
+                  fontSize: 14, background: "var(--bg-surface)",
                   outline: "none", boxSizing: "border-box",
                 }}
               />
@@ -136,10 +136,10 @@ export default function SearchPage() {
                 placeholder="Ex : Strasbourg, Paris..."
                 style={{
                   width: "100%", padding: "12px 14px",
-                  border: "2px solid var(--black)",
-                  boxShadow: "3px 3px 0 var(--black)",
+                  border: "1.5px solid var(--border-col)",
+                  boxShadow: "3px 3px 0 var(--shadow-col)",
                   fontFamily: "'Space Grotesk', sans-serif",
-                  fontSize: 14, background: "var(--white)",
+                  fontSize: 14, background: "var(--bg-surface)",
                   outline: "none", boxSizing: "border-box",
                 }}
               />
@@ -158,10 +158,10 @@ export default function SearchPage() {
                   onClick={() => setCategorie(cat.value)}
                   style={{
                     padding: "8px 16px",
-                    border: "2px solid var(--black)",
-                    boxShadow: categorie === cat.value ? "3px 3px 0 var(--orange)" : "3px 3px 0 var(--black)",
-                    background: categorie === cat.value ? "var(--black)" : "var(--white)",
-                    color: categorie === cat.value ? "#fff" : "var(--black)",
+                    border: "1.5px solid var(--border-col)",
+                    boxShadow: categorie === cat.value ? "3px 3px 0 var(--orange)" : "3px 3px 0 var(--shadow-col)",
+                    background: categorie === cat.value ? "var(--turquoise)" : "var(--bg-raised)",
+                    color: categorie === cat.value ? "#fff" : "var(--fg)",
                     fontFamily: "'Space Grotesk', sans-serif",
                     fontSize: 13, fontWeight: 600,
                     cursor: "pointer",
@@ -175,7 +175,7 @@ export default function SearchPage() {
           </div>
 
           {error && (
-            <div style={{ padding: "12px 16px", border: "2px solid #c0392b", background: "#fdf0f0", color: "#c0392b", fontSize: 13 }}>
+            <div style={{ padding: "12px 16px", border: "1.5px solid #e05252", background: "rgba(224,82,82,0.08)", color: "#e05252", fontSize: 13 }}>
               {error}
             </div>
           )}
@@ -190,13 +190,13 @@ export default function SearchPage() {
       {searched && (
         <div>
           <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: "var(--gray-text)" }}>
+            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: "var(--fg-muted)" }}>
               {jobs.length} offre{jobs.length !== 1 ? "s" : ""} trouvee{jobs.length !== 1 ? "s" : ""}
             </span>
           </div>
 
           {jobs.length === 0 ? (
-            <div style={{ padding: "60px 32px", border: "2px dashed var(--gray)", textAlign: "center", color: "var(--gray-text)" }}>
+            <div style={{ padding: "60px 32px", border: "1.5px dashed var(--border-col)", textAlign: "center", color: "var(--fg-muted)" }}>
               Aucune offre trouvee. Essaie d'autres mots-cles ou une autre ville.
             </div>
           ) : (
@@ -205,17 +205,17 @@ export default function SearchPage() {
                 <div
                   key={job.id}
                   style={{
-                    border: "2px solid var(--black)",
-                    boxShadow: "4px 4px 0 var(--black)",
-                    background: "var(--white)",
+                    border: "1.5px solid var(--border-col)",
+                    boxShadow: "4px 4px 0 var(--shadow-col)",
+                    background: "var(--bg-surface)",
                     overflow: "hidden",
                   }}
                 >
                   {/* Header offre */}
-                  <div style={{ padding: "18px 24px", borderBottom: "1px solid var(--gray)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
+                  <div style={{ padding: "18px 24px", borderBottom: "1px solid var(--border-col)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-                        <span style={{ fontSize: 16, fontWeight: 700, color: "var(--black)" }}>
+                        <span style={{ fontSize: 16, fontWeight: 700, color: "var(--fg)" }}>
                           {job.titre}
                         </span>
                         <span style={{
@@ -232,12 +232,12 @@ export default function SearchPage() {
                       </div>
                       <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
                         {job.ville && (
-                          <span style={{ fontSize: 12, color: "var(--gray-text)", fontFamily: "'IBM Plex Mono', monospace" }}>
+                          <span style={{ fontSize: 12, color: "var(--fg-muted)", fontFamily: "'IBM Plex Mono', monospace" }}>
                             {job.ville}
                           </span>
                         )}
                         {job.contrat && (
-                          <span style={{ fontSize: 12, color: "var(--gray-text)", fontFamily: "'IBM Plex Mono', monospace" }}>
+                          <span style={{ fontSize: 12, color: "var(--fg-muted)", fontFamily: "'IBM Plex Mono', monospace" }}>
                             {job.contrat}
                           </span>
                         )}
@@ -276,7 +276,7 @@ export default function SearchPage() {
                   {/* Description */}
                   {job.description && (
                     <div style={{ padding: "14px 24px" }}>
-                      <p style={{ fontSize: 13, color: "var(--gray-text)", lineHeight: 1.7, margin: 0, fontFamily: "'IBM Plex Mono', monospace" }}>
+                      <p style={{ fontSize: 13, color: "var(--fg-muted)", lineHeight: 1.7, margin: 0, fontFamily: "'IBM Plex Mono', monospace" }}>
                         {job.description.slice(0, 300)}{job.description.length > 300 ? "..." : ""}
                       </p>
                     </div>
