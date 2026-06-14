@@ -1,12 +1,15 @@
 "use client"
  
 import { useState, useRef } from "react"
-import { runPipeline, type RunResult } from "@/lib/api"
+import { runPipeline } from "@/lib/api"
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RunResult = any
 import PushButton from "@/components/PushButton"
 import Card from "@/components/Card"
 import ScoreBar from "@/components/ScoreBar"
 import KeywordBadge from "@/components/KeywordBadge"
 import MarkdownView from "@/components/MarkdownView"
+import { SkeletonCard, SkeletonBadges } from "@/components/Skeleton"
  
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
  
@@ -47,7 +50,7 @@ export default function Home() {
     setLoading(true)
     setResult(null)
     try {
-      const data = await runPipeline(offerText, preferences, mode, file)
+      const data = await runPipeline(offerText, preferences, mode, file ?? undefined)
       setResult(data)
       setActiveTab(mode === "cv_only" ? "ats" : "lettre")
     } catch (e: unknown) {
@@ -229,8 +232,28 @@ export default function Home() {
         </div>
       </Card>
  
+      {/* ── Skeleton pendant chargement ───────────────────────────────────── */}
+      {loading && (
+        <div className="animate-in" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 2fr", gap: "1rem" }}>
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+          <SkeletonCard />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+            <div style={{ border: "2px solid var(--black)", padding: "1.25rem" }}>
+              <SkeletonBadges count={8} />
+            </div>
+            <div style={{ border: "2px solid var(--black)", padding: "1.25rem" }}>
+              <SkeletonBadges count={5} />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Résultats ──────────────────────────────────────────────────────── */}
-      {result && (
+      {result && !loading && (
         <div className="animate-in" style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
  
           {/* Score summary */}
@@ -342,12 +365,12 @@ export default function Home() {
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                       <Card title={`Mots-clés présents (${result.ats.keywords_found.length})`} tagColor="turquoise">
                         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-                          {result.ats.keywords_found.map((k: string) => <KeywordBadge key={k} word={k} variant="found" />)}
+                          {result.ats.keywords_found.map((k: string, i: number) => <KeywordBadge key={k} word={k} variant="found" index={i} />)}
                         </div>
                       </Card>
                       <Card title={`Mots-clés manquants (${result.ats.keywords_missing.length})`} tagColor="orange">
                         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-                          {result.ats.keywords_missing.map((k: string) => <KeywordBadge key={k} word={k} variant="missing" />)}
+                          {result.ats.keywords_missing.map((k: string, i: number) => <KeywordBadge key={k} word={k} variant="missing" index={i} />)}
                         </div>
                       </Card>
                     </div>
@@ -379,12 +402,12 @@ export default function Home() {
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                     <Card title="Mots-clés de l'offre">
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-                        {result.match.job_keywords.map((k: string) => <KeywordBadge key={k} word={k} variant="neutral" />)}
+                        {result.match.job_keywords.map((k: string, i: number) => <KeywordBadge key={k} word={k} variant="neutral" index={i} />)}
                       </div>
                     </Card>
                     <Card title="Points forts du CV">
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-                        {result.match.cv_keywords.map((k: string) => <KeywordBadge key={k} word={k} variant="found" />)}
+                        {result.match.cv_keywords.map((k: string, i: number) => <KeywordBadge key={k} word={k} variant="found" index={i} />)}
                       </div>
                     </Card>
                   </div>

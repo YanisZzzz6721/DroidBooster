@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Card from "@/components/Card"
+import { SkeletonStatRow } from "@/components/Skeleton"
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 
@@ -118,10 +119,10 @@ export default function RagPage() {
         </div>
       )}
 
-      {/* États */}
+      {/* Skeleton loading */}
       {loading && (
-        <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.8rem", color: "var(--gray-400)" }}>
-          Chargement…
+        <div className="animate-in" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          {[1,2,3].map(i => <SkeletonStatRow key={i} />)}
         </div>
       )}
       {error && (
@@ -130,20 +131,22 @@ export default function RagPage() {
         </div>
       )}
       {!loading && !error && stats.length === 0 && (
-        <Card title="Base vide" tag="RAG" tagColor="orange">
-          <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.8rem", color: "var(--gray-600)", lineHeight: 1.7 }}>
-            Aucun CV optimisé en base pour l'instant.<br />
-            Lance un pipeline complet ou un CV optimisé pour alimenter le RAG.
-          </p>
-        </Card>
+        <div className="empty-state">
+          <span className="empty-state-icon">⬡</span>
+          <span className="empty-state-title">Base RAG vide</span>
+          <span className="empty-state-desc">
+            Aucun CV optimisé en base.<br />
+            Lance un pipeline complet pour alimenter le RAG.
+          </span>
+        </div>
       )}
 
       {/* Tableau par secteur */}
       {!loading && !error && stats.length > 0 && (
         <Card title="CVs par secteur" tag="BASE RAG" tagColor="turquoise">
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-            {stats.map(row => (
-              <div key={row.secteur} style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+            {stats.map((row, idx) => (
+              <div key={row.secteur} className={`animate-in stagger-${Math.min(idx + 1, 8)}`} style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
                     <span style={{

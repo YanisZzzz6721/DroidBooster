@@ -1,32 +1,25 @@
 import type { Metadata } from "next"
 import "./globals.css"
 import Sidebar from "@/components/Sidebar"
+import Toasts from "@/components/Toast"
+import { ToastProvider } from "@/lib/toast"
 
 export const metadata: Metadata = {
   title: "DroidBooster",
-  description: "Automatisation de candidatures par IA",
+  description: "Générateur de lettres de motivation et CVs optimisés ATS",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr">
       <body>
-        <div style={{ display: "flex", minHeight: "100vh" }}>
-
-          {/* Sidebar fixe */}
+        <ToastProvider>
           <Sidebar />
-
-          {/* Contenu principal */}
-          <main style={{
-            flex: 1,
-            marginLeft: "220px",
-            padding: "2.5rem",
-            maxWidth: "900px",
-          }}>
+          <main style={{ marginLeft: "220px", padding: "2rem", minHeight: "100vh" }}>
             {children}
           </main>
-
-        </div>
+          <Toasts />
+        </ToastProvider>
       </body>
     </html>
   )
