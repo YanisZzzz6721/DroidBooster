@@ -298,14 +298,30 @@ export default function Home() {
                 {activeTab === "lettre" && result.lettre_md && (
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                     {lettreDocxFilename && (
-                      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                      <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
+                        <button
+                          onClick={() => fetch(`${API}/open-in-libreoffice/${lettreDocxFilename}`)}
+                          className="btn-sm"
+                          style={{
+                            fontFamily:  "'IBM Plex Mono', monospace",
+                            fontSize:    "0.75rem",
+                            background:  "var(--white)",
+                            border:      "2px solid var(--black)",
+                            boxShadow:   "2px 2px 0px var(--black)",
+                            padding:     "0.35rem 0.85rem",
+                            cursor:      "pointer",
+                            color:       "var(--black)",
+                          }}
+                        >
+                          ✎ Ouvrir dans LibreOffice
+                        </button>
                         <a
                           href={`${API}/download-lettre/${lettreDocxFilename}?t=${Date.now()}`}
                           className="btn-primary btn-sm"
                           style={{ textDecoration: "none" }}
                           download
                         >
-                          ↓ Télécharger la lettre (.docx)
+                          ↓ Télécharger (.docx)
                         </a>
                       </div>
                     )}

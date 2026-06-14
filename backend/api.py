@@ -10,6 +10,7 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 
+import subprocess
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -293,6 +294,33 @@ async def ats_custom(
 
 
 # ─── Lettre DOCX ──────────────────────────────────────────────────────────────
+
+LIBREOFFICE_PATHS = [
+    "/Applications/LibreOffice.app/Contents/MacOS/soffice",  # macOS standard
+    "/usr/bin/libreoffice",                                    # Linux
+    "/usr/bin/soffice",                                        # Linux alt
+]
+
+def _find_libreoffice() -> str | None:
+    for p in LIBREOFFICE_PATHS:
+        if Path(p).exists():
+            return p
+    return None
+
+@app.get("/open-in-libreoffice/{filename}")
+def open_in_libreoffice(filename: str):
+    """Ouvre le fichier DOCX directement dans LibreOffice sur la machine locale."""
+    path = Path(__file__).parent / "output" / filename
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Fichier introuvable.")
+
+    soffice = _find_libreoffice()
+    if not soffice:
+        raise HTTPException(status_code=500, detail="LibreOffice introuvable sur cette machine.")
+
+    subprocess.Popen([soffice, "--writer", str(path)])
+    return {"opened": filename, "path": str(path)}
+
 
 @app.get("/download-lettre/{filename}")
 def download_lettre(filename: str):
