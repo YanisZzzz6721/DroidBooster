@@ -26,7 +26,7 @@ from database import (
     init_db,
     save_candidature, get_history, get_candidature, delete_candidature,
     save_export, get_export_history, get_export, delete_export,
-    get_generated_cv_stats,
+    get_generated_cv_stats, get_rag_stats,
 )
 from parser import parse_cv
 from builder import build_docx
@@ -74,7 +74,18 @@ class GenerateRequest(BaseModel):
 class AtsRequest(BaseModel):
     offre_texte:  str
     match_result: dict
-    
+
+class LetterRequest(BaseModel):
+    offre_texte:  str
+    cv_name:      str        # nom du CV dans /cvs
+    preferences:  str = ""
+
+class CvGenerateRequest(BaseModel):
+    offre_texte:  str
+    cv_content:   str        # contenu brut du CV Markdown
+    cv_name:      str = "cv_custom"
+    preferences:  str = ""
+
 class ParseCvRequest(BaseModel):
     cv_markdown: str
  
@@ -146,7 +157,109 @@ def generate(body: GenerateRequest):
         result = generate_letter(match_result, body.offre_texte)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    return {"lettre_md": result["corps"], "md_path": result["md_path"], "docx_path": result["docx_path"]}
+    return {
+        "lettre_md":     result["corps"],
+        "md_path":       result["md_path"],
+        "docx_path":     result["docx_path"],
+        "score_qualite": result.get("score_qualite"),
+        "analyse_offre": result.get("analyse_offre"),
+    }
+
+
+# ─── Endpoint dédié Lettre de Motivation ──────────────────────────────────────
+
+@app.post("/generate-letter")
+def generate_letter_endpoint(body: LetterRequest):
+    """
+    Génère une lettre de motivation avec le pipeline complet 4 étapes :
+    - Extraction faits CV (anti-hallucination)
+    - Analyse offre (ton, valeurs, profil)
+    - RAG lettres (exemples passés du même secteur)
+    - Sonnet JSON structuré + score qualité + sauvegarde RAG
+    """
+    if not body.offre_texte.strip():
+        raise HTTPException(status_code=400, detail="Texte de l'offre vide.")
+
+    # Chargement du CV depuis le dossier
+    try:
+        cvs = load_cvs(str(CVS_DIR))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur chargement CVs : {e}")
+
+    cv = next((c for c in cvs if c["name"] == body.cv_name), None)
+    if cv is None:
+        raise HTTPException(status_code=404, detail=f"CV '{body.cv_name}' introuvable.")
+
+    # Construction du match_result minimal
+    match_result = {
+        "cv_name":          cv["name"],
+        "cv_content":       cv["content"],
+        "job_keywords":     [],
+        "cv_keywords":      [],
+        "selection_reason": "CV sélectionné manuellement",
+    }
+    match_result = _inject_preferences(match_result, body.preferences)
+
+    try:
+        result = generate_letter(match_result, body.offre_texte)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    docx_filename = Path(result["docx_path"]).name
+    return {
+        "lettre_md":      result["corps"],
+        "docx_filename":  docx_filename,
+        "score_qualite":  result.get("score_qualite"),
+        "analyse_offre":  result.get("analyse_offre"),
+        "rag_exemples":   result.get("rag_exemples", 0),
+        "metadata":       result.get("metadata", {}),
+    }
+
+
+# ─── Endpoint dédié Génération CV optimisé ────────────────────────────────────
+
+@app.post("/generate-cv")
+def generate_cv_endpoint(body: CvGenerateRequest):
+    """
+    Génère un CV optimisé ATS pour une offre donnée.
+    Retourne le CV en Markdown + lien de téléchargement DOCX.
+    """
+    if not body.offre_texte.strip():
+        raise HTTPException(status_code=400, detail="Texte de l'offre vide.")
+    if not body.cv_content.strip():
+        raise HTTPException(status_code=400, detail="Contenu du CV vide.")
+
+    match_result = {
+        "cv_name":          body.cv_name,
+        "cv_content":       body.cv_content,
+        "job_keywords":     [],
+        "cv_keywords":      [],
+        "selection_reason": "CV fourni directement",
+    }
+    if body.preferences.strip():
+        match_result["preferences_utilisateur"] = body.preferences.strip()
+
+    try:
+        metadata       = extract_offer_metadata(body.offre_texte)
+        analysis       = analyze_ats(body.offre_texte, match_result)
+        cv_path, _     = generate_optimized_cv(
+            body.offre_texte, match_result, analysis,
+            entreprise=metadata.get("entreprise", ""),
+            secteur=metadata.get("secteur", ""),
+        )
+        cv_optimise_md = cv_path.read_text(encoding="utf-8")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return {
+        "cv_optimise_md":   cv_optimise_md,
+        "score":            analysis["score"],
+        "keywords_found":   analysis["keywords_found"],
+        "keywords_missing": analysis["keywords_missing"],
+        "suggestions":      analysis["suggestions"],
+        "summary":          analysis["summary"],
+        "metadata":         metadata,
+    }
 
 @app.post("/ats")
 def ats(body: AtsRequest):
@@ -195,20 +308,16 @@ async def run(
         response = {"match": match_result, "metadata": metadata}
 
         lettre_docx_path = None
+        cv_optimise_md   = None
 
-        if mode in ("full", "letter_only"):
-            letter           = generate_letter(match_result, offer_text)
-            lettre_docx_path = letter["docx_path"]
-            response["lettre_md"]   = letter["corps"]
-            response["docx_path"]   = letter["docx_path"]
-
+        # ── Étape 1 : génération CV optimisé (toujours en premier)
         if mode in ("full", "cv_only"):
-            analysis       = analyze_ats(offer_text, match_result)
+            analysis   = analyze_ats(offer_text, match_result)
             cv_path, _ = generate_optimized_cv(
-                    offer_text, match_result, analysis,
-                    entreprise=metadata.get("entreprise", ""),
-                    secteur=metadata.get("secteur", ""),
-                )
+                offer_text, match_result, analysis,
+                entreprise=metadata.get("entreprise", ""),
+                secteur=metadata.get("secteur", ""),
+            )
             cv_optimise_md = cv_path.read_text(encoding="utf-8")
             response["ats"] = {
                 "score":            analysis["score"],
@@ -218,6 +327,23 @@ async def run(
                 "summary":          analysis["summary"],
             }
             response["cv_optimise_md"] = cv_optimise_md
+
+        # ── Étape 2 : lettre basée sur le CV GÉNÉRÉ (si full) ou CV de base (si letter_only)
+        if mode in ("full", "letter_only"):
+            # En mode full : la lettre utilise le CV optimisé généré à l'étape 1
+            if mode == "full" and cv_optimise_md:
+                match_result_for_letter = dict(match_result)
+                match_result_for_letter["cv_content"] = cv_optimise_md
+                match_result_for_letter["cv_name"]    = f"optimise_{match_result['cv_name']}"
+            else:
+                match_result_for_letter = match_result
+
+            letter           = generate_letter(match_result_for_letter, offer_text)
+            lettre_docx_path = letter["docx_path"]
+            response["lettre_md"]     = letter["corps"]
+            response["docx_path"]     = letter["docx_path"]
+            response["score_qualite"] = letter.get("score_qualite")
+            response["analyse_offre"] = letter.get("analyse_offre")
 
         # Sauvegarde historique enrichi
         save_candidature(
@@ -451,9 +577,9 @@ def search_jobs_endpoint(
 
 @app.get("/rag/stats")
 def rag_stats():
-    """Retourne les stats des CVs générés par secteur."""
+    """Retourne les stats unifiées RAG : CVs + Lettres par secteur."""
     try:
-        return {"stats": get_generated_cv_stats()}
+        return get_rag_stats()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

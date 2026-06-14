@@ -231,7 +231,11 @@ class TestRagStatsEndpoint:
     def test_rag_stats_vide(self):
         r = client.get("/rag/stats")
         assert r.status_code == 200
-        assert r.json() == {"stats": []}
+        data = r.json()
+        assert "cvs" in data
+        assert "lettres" in data
+        assert data["cvs"]["total"] == 0
+        assert data["lettres"]["total"] == 0
 
     def test_rag_stats_avec_donnees(self):
         db_module.save_generated_cv(
@@ -239,17 +243,17 @@ class TestRagStatsEndpoint:
         )
         r = client.get("/rag/stats")
         assert r.status_code == 200
-        stats = r.json()["stats"]
-        assert len(stats) == 1
-        assert stats[0]["secteur"] == "restauration"
-        assert stats[0]["total"]   == 1
+        data = r.json()
+        assert data["cvs"]["total"] == 1
+        assert data["cvs"]["par_secteur"][0]["secteur"] == "restauration"
 
     def test_rag_stats_champs(self):
         db_module.save_generated_cv(secteur="accueil", cv_base="cv_a", content="# CV", score_ats=90)
-        stats = client.get("/rag/stats").json()["stats"]
-        assert "secteur"     in stats[0]
-        assert "total"       in stats[0]
-        assert "score_moyen" in stats[0]
+        data = client.get("/rag/stats").json()
+        assert "cvs"    in data
+        assert "lettres" in data
+        assert "par_secteur" in data["cvs"]
+        assert "score_moyen" in data["cvs"]
 
 
 # ─── /open-in-libreoffice ────────────────────────────────────────────────────
