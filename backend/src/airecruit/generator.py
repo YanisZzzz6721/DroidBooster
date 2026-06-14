@@ -1,4 +1,5 @@
 import os
+import json
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
@@ -13,12 +14,90 @@ load_dotenv()
 OUTPUT_DIR = Path(__file__).parent.parent.parent / "output"
 
 
+# ══════════════════════════════════════════════════════════════════
+# ÉTAPE 1 — Analyse de l'offre (Claude Haiku)
+# ══════════════════════════════════════════════════════════════════
+
+def _analyse_offre(offer: str, client: anthropic.Anthropic) -> dict:
+    """
+    Agent Offer Analyst — Claude Haiku.
+    Extrait le ton, la culture, le profil exact et les pièges à éviter
+    pour personnaliser la lettre au maximum.
+    Retourne un dict JSON structuré.
+    """
+    prompt = f"""Analyse cette offre d'emploi et retourne un JSON strict avec ces 5 champs :
+
+{{
+  "ton_entreprise": "description courte du ton/style de l'entreprise (ex: startup tech agile, cabinet institutionnel, PME familiale...)",
+  "valeurs_cles": ["valeur1", "valeur2", "valeur3"],
+  "profil_exact": "description précise du candidat idéal selon l'offre",
+  "points_differenciants": "ce qui rendra cette lettre unique et pertinente pour CETTE entreprise spécifiquement",
+  "mots_a_eviter": ["mot1", "mot2"]
+}}
+
+Règles :
+- "ton_entreprise" : 1 phrase courte, concrète (pas "dynamique" seul)
+- "valeurs_cles" : exactement 3 valeurs tirées du texte de l'offre
+- "profil_exact" : 1-2 phrases sur le candidat recherché (expérience, qualités, contexte)
+- "points_differenciants" : 1 phrase sur ce qui différencie cette entreprise des autres dans le même secteur
+- "mots_a_eviter" : 2-4 mots génériques ou inadaptés au contexte de cette entreprise
+
+Réponds UNIQUEMENT avec le JSON, sans markdown, sans explication.
+
+=== OFFRE ===
+{offer}"""
+
+    response = client.messages.create(
+        model="claude-haiku-4-5",
+        max_tokens=400,
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    raw = response.content[0].text.strip()
+
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        # Fallback si Haiku renvoie du markdown ou du texte autour du JSON
+        import re
+        match = re.search(r'\{.*\}', raw, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group())
+            except json.JSONDecodeError:
+                pass
+        # Fallback neutre
+        return {
+            "ton_entreprise":       "entreprise professionnelle",
+            "valeurs_cles":         [],
+            "profil_exact":         "",
+            "points_differenciants": "",
+            "mots_a_eviter":        [],
+        }
+
+
+# ══════════════════════════════════════════════════════════════════
+# ÉTAPE 2 — Génération de la lettre (Claude Sonnet)
+# ══════════════════════════════════════════════════════════════════
+
 def generate_letter(match_result: dict, offer: str) -> dict:
     """
-    Génère le texte de la lettre via Claude puis l'injecte dans le template DOCX.
+    Pipeline en 2 étapes :
+      1. Haiku analyse l'offre → ton, culture, profil, différenciants
+      2. Sonnet génère la lettre enrichie de cette analyse
     """
     client   = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
     metadata = extract_offer_metadata(offer)
+
+    # ── Étape 1 : analyse Haiku
+    analyse = _analyse_offre(offer, client)
+
+    # ── Construction des blocs d'analyse pour le prompt
+    valeurs_str      = ", ".join(analyse.get("valeurs_cles", [])) or "non détectées"
+    eviter_str       = ", ".join(analyse.get("mots_a_eviter", [])) or "aucun"
+    ton_str          = analyse.get("ton_entreprise", "")
+    profil_str       = analyse.get("profil_exact", "")
+    differenciants_str = analyse.get("points_differenciants", "")
 
     # Préférences utilisateur
     preferences   = match_result.get("preferences_utilisateur", "")
@@ -27,6 +106,18 @@ def generate_letter(match_result: dict, offer: str) -> dict:
     prompt = f"""Tu es un expert en rédaction de lettres de motivation percutantes et optimisées ATS.
 
 Rédige une lettre de motivation chirurgicale en 3 paragraphes stricts.
+
+=== ANALYSE DE L'ENTREPRISE (fournie par notre agent d'analyse) ===
+Ton / style de l'entreprise : {ton_str}
+Valeurs clés détectées      : {valeurs_str}
+Profil exact recherché      : {profil_str}
+Ce qui différencie cette entreprise : {differenciants_str}
+Mots à éviter absolument    : {eviter_str}
+
+ADAPTE le registre, le vocabulaire et les exemples mis en avant en fonction de cette analyse.
+Si l'entreprise est une startup → ton direct, concret, orienté impact.
+Si c'est un cabinet institutionnel → ton posé, précis, orienté rigueur.
+Intègre les valeurs détectées naturellement dans le texte, sans les citer explicitement.
 
 === RÈGLES ABSOLUES ===
 
@@ -78,6 +169,7 @@ RÈGLES DE FOND :
 - Ne jamais inventer ni exagérer la durée d'expérience — s'appuyer uniquement sur les dates exactes du CV
 - Ne jamais écrire "depuis plusieurs années" ou toute durée non vérifiable depuis le CV
 - Si tu mentionnes une durée, calcule-la depuis les dates du CV
+- Ne jamais utiliser les mots listés dans "Mots à éviter"
 
 ATS — CONTRAINTE CRITIQUE :
 Intègre tous les mots-clés de l'offre dans leur forme exacte (pas de synonymes).
@@ -134,8 +226,13 @@ Réponds uniquement avec les 3 paragraphes. Pas de formule d'appel, pas de signa
         "docx_path": str(docx_path),
         "corps":     corps,
         "metadata":  metadata,
+        "analyse_offre": analyse,   # exposé pour debug / frontend
     }
 
+
+# ══════════════════════════════════════════════════════════════════
+# INJECTION DOCX
+# ══════════════════════════════════════════════════════════════════
 
 def _inject_docx(corps: str, metadata: dict, nom_fichier: str) -> Path:
     template_path = Path(__file__).parent.parent.parent / "templates" / "lettre_template.docx"
