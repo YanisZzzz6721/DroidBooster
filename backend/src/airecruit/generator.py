@@ -60,9 +60,11 @@ Les phrases s'enchaînent avec fluidité, comme une conversation écrite soigné
 STRUCTURE OBLIGATOIRE :
 §1 : Qui est le candidat + pourquoi ce poste maintenant + ce qui l'attire dans CET établissement.
      Une seule idée par proposition. Nommer l'établissement naturellement.
-§2 : Faits concrets issus du CV, toutes les expériences pertinentes dosées selon leur
-     proximité avec le poste, mots-clés de l'offre intégrés naturellement dans leur forme exacte.
-     Le LLM choisit quoi mettre en avant selon la pertinence, pas selon l'ordre chronologique.
+§2 : Faits concrets issus du CV, mots-clés de l'offre intégrés naturellement dans leur forme exacte.
+     ORDRE OBLIGATOIRE : expériences citées dans l'ordre chronologique inversé — la plus récente en premier.
+     Ne jamais réorganiser selon la pertinence.
+     Ne jamais inventer une compétence absente du CV (barista, latte art, etc. uniquement si dans le CV).
+     Ne jamais exagérer une durée — s'appuyer uniquement sur les dates exactes du CV.
 §3 : Valeur ajoutée spécifique à CET établissement + disponibilité + ouverture entretien.
      Affirmer, pas supposer. Nommer l'entreprise explicitement.
 
@@ -73,6 +75,9 @@ RÈGLES DE FOND :
 - Si l'offre est vague, compenser par des faits précis et chiffrés du CV
 - Le §3 doit dire quelque chose de spécifique à l'entreprise, pas une conclusion générique
 - §3 : conclure avec une ouverture directe et chaleureuse, jamais une formule administrative
+- Ne jamais inventer ni exagérer la durée d'expérience — s'appuyer uniquement sur les dates exactes du CV
+- Ne jamais écrire "depuis plusieurs années" ou toute durée non vérifiable depuis le CV
+- Si tu mentionnes une durée, calcule-la depuis les dates du CV
 
 ATS — CONTRAINTE CRITIQUE :
 Intègre tous les mots-clés de l'offre dans leur forme exacte (pas de synonymes).
@@ -80,9 +85,6 @@ Priorité aux mots-clés les plus fréquents dans l'offre.
 
 === OFFRE D'EMPLOI ===
 {offer}
-
-=== CV SÉLECTIONNÉ : {match_result['cv_name']} ===
-{match_result['cv_content']}
 
 === MOTS-CLÉS ATS À INTÉGRER EN PRIORITÉ ===
 {', '.join(match_result['job_keywords'])}
@@ -95,10 +97,22 @@ Priorité aux mots-clés les plus fréquents dans l'offre.
 {prefs_section}
 Réponds uniquement avec les 3 paragraphes. Pas de formule d'appel, pas de signature, pas de titre."""
 
+    user_content = [
+        {
+            "type": "text",
+            "text": f"=== CV SÉLECTIONNÉ : {match_result['cv_name']} ===\n{match_result['cv_content']}",
+            "cache_control": {"type": "ephemeral"},
+        },
+        {
+            "type": "text",
+            "text": prompt,
+        },
+    ]
+
     response = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=1500,
-        messages=[{"role": "user", "content": prompt}]
+        messages=[{"role": "user", "content": user_content}],
     )
 
     corps = response.content[0].text.strip()

@@ -246,18 +246,21 @@ def analyze_ats(offer: str, match_result: dict, output_dir: str = "output") -> d
 def _call_claude(offer: str, cv_content: str, cv_name: str) -> dict:
     client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
-    prompt = f"""Tu es un analyseur ATS expert en recrutement.
+    system_prompt = "Tu es un analyseur ATS expert en recrutement. Réponds uniquement en JSON valide, sans backticks, en français."
 
-Analyse la compatibilité entre cette offre et ce CV.
+    user_content = [
+        {
+            "type": "text",
+            "text": f"CV à analyser ({cv_name}) :\n\"\"\"\n{cv_content}\n\"\"\"",
+            "cache_control": {"type": "ephemeral"},
+        },
+        {
+            "type": "text",
+            "text": f"""Analyse la compatibilité entre cette offre et le CV ci-dessus.
 
 OFFRE :
 \"\"\"
 {offer}
-\"\"\"
-
-CV ({cv_name}) :
-\"\"\"
-{cv_content}
 \"\"\"
 
 Réponds UNIQUEMENT avec un JSON valide, sans backticks :
@@ -271,13 +274,15 @@ Réponds UNIQUEMENT avec un JSON valide, sans backticks :
 }}
 
 Barème : 90-100 excellent · 70-89 bon · 50-69 partiel · 0-49 faible
-Suggestions = CONCRÈTES ("Ajouter HACCP dans Formation", pas "améliorer le CV")
-Réponds en français."""
+Suggestions = CONCRÈTES ("Ajouter HACCP dans Formation", pas "améliorer le CV")""",
+        },
+    ]
 
     response = client.messages.create(
         model=MODEL,
         max_tokens=MAX_TOKENS,
-        messages=[{"role": "user", "content": prompt}],
+        system=[{"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}],
+        messages=[{"role": "user", "content": user_content}],
     )
 
     raw = response.content[0].text.strip()
@@ -405,9 +410,6 @@ Ton rôle : réécrire intégralement le CV en Markdown optimisé pour maximiser
 === OFFRE D'EMPLOI ===
 {offer}
 
-=== CV ORIGINAL ({cv_name}) ===
-{cv_content}
-
 === RAPPORT ATS (score actuel : {score_actuel}/100) ===
 Mots-clés déjà présents : {keywords_found}
 Mots-clés MANQUANTS à intégrer absolument : {keywords_missing}
@@ -477,10 +479,22 @@ Suggestions d'amélioration :
    - Répondre uniquement en français
    - Répondre uniquement avec le Markdown brut du CV, sans commentaire ni balise de code"""
 
+    user_content = [
+        {
+            "type": "text",
+            "text": f"=== CV ORIGINAL ({cv_name}) ===\n{cv_content}",
+            "cache_control": {"type": "ephemeral"},
+        },
+        {
+            "type": "text",
+            "text": prompt,
+        },
+    ]
+
     response = client.messages.create(
         model=MODEL,
         max_tokens=2000,
-        messages=[{"role": "user", "content": prompt}],
+        messages=[{"role": "user", "content": user_content}],
     )
 
     cv_optimise = response.content[0].text.strip()
