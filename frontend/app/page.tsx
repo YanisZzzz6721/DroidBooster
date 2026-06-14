@@ -179,28 +179,28 @@ export default function Home() {
                   key={m.value}
                   onClick={() => setMode(m.value)}
                   style={{
-                    padding:    "0.75rem",
-                    textAlign:  "left",
-                    cursor:     "pointer",
-                    border:     mode === m.value ? "2px solid var(--black)" : "2px solid var(--gray-200)",
-                    background: mode === m.value ? "var(--black)" : "var(--white)",
-                    boxShadow:  mode === m.value ? "3px 3px 0px var(--orange)" : "none",
-                    transition: "all 0.1s ease",
+                    padding:     "0.75rem",
+                    textAlign:   "left",
+                    cursor:      "pointer",
+                    border:      mode === m.value ? "1.5px solid var(--orange)" : "1.5px solid var(--border-col)",
+                    background:  mode === m.value ? "rgba(232,99,10,0.12)" : "var(--bg-raised)",
+                    boxShadow:   mode === m.value ? "3px 3px 0px var(--orange)" : "none",
+                    transition:  "all 0.15s ease",
                   }}
                 >
                   <div style={{
                     fontFamily:   "'Space Grotesk', sans-serif",
                     fontWeight:   700,
                     fontSize:     "0.82rem",
-                    color:        mode === m.value ? "var(--white)" : "var(--black)",
+                    color:        mode === m.value ? "var(--orange)" : "var(--fg)",
                     marginBottom: "0.2rem",
                   }}>
                     {m.label}
                   </div>
                   <div style={{
                     fontFamily: "'IBM Plex Mono', monospace",
-                    fontSize:   "0.68rem",
-                    color:      "var(--gray-400)",
+                    fontSize:   "0.67rem",
+                    color:      "var(--fg-dim)",
                   }}>
                     {m.desc}
                   </div>
@@ -211,13 +211,13 @@ export default function Home() {
  
           {/* Erreur */}
           {error && (
-            <div style={{
+            <div className="animate-shake" style={{
               padding:    "0.75rem 1rem",
-              border:     "2px solid #c0392b",
-              background: "#fdf0f0",
+              border:     "1.5px solid rgba(224,82,82,0.5)",
+              background: "rgba(224,82,82,0.08)",
               fontFamily: "'IBM Plex Mono', monospace",
               fontSize:   "0.8rem",
-              color:      "#c0392b",
+              color:      "#e05252",
               boxShadow:  "3px 3px 0px #c0392b",
             }}>
               ✗ {error}
@@ -242,10 +242,10 @@ export default function Home() {
           </div>
           <SkeletonCard />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-            <div style={{ border: "2px solid var(--black)", padding: "1.25rem" }}>
+            <div style={{ border: "1.5px solid var(--border-col)", padding: "1.25rem", background: "var(--bg-surface)" }}>
               <SkeletonBadges count={8} />
             </div>
-            <div style={{ border: "2px solid var(--black)", padding: "1.25rem" }}>
+            <div style={{ border: "1.5px solid var(--border-col)", padding: "1.25rem", background: "var(--bg-surface)" }}>
               <SkeletonBadges count={5} />
             </div>
           </div>
@@ -262,39 +262,39 @@ export default function Home() {
             gridTemplateColumns: result.ats ? "1fr 1fr 2fr" : "1fr 3fr",
             gap: "1rem",
           }}>
-            <div style={{
-              border: "2px solid var(--black)", boxShadow: "4px 4px 0px var(--black)",
-              padding: "1rem", background: "var(--white)", textAlign: "center",
+            <div className="animate-pop stagger-1" style={{
+              border: "1.5px solid var(--border-col)", boxShadow: "4px 4px 0px var(--shadow-col)",
+              padding: "1rem", background: "var(--bg-surface)", textAlign: "center",
             }}>
-              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.65rem", color: "var(--gray-400)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.3rem" }}>Match</div>
-              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "2.2rem", color: "var(--turquoise)", lineHeight: 1 }}>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.62rem", color: "var(--fg-dim)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "0.4rem" }}>Match</div>
+              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "2.4rem", color: "var(--turquoise)", lineHeight: 1 }}>
                 {result.match.match_score}
               </div>
             </div>
- 
+
             {result.ats && (
-              <div style={{
-                border: "2px solid var(--black)", boxShadow: "4px 4px 0px var(--black)",
-                padding: "1rem", background: "var(--white)", textAlign: "center",
+              <div className="animate-pop stagger-2" style={{
+                border: "1.5px solid var(--border-col)", boxShadow: "4px 4px 0px var(--shadow-col)",
+                padding: "1rem", background: "var(--bg-surface)", textAlign: "center",
               }}>
-                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.65rem", color: "var(--gray-400)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.3rem" }}>ATS</div>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.62rem", color: "var(--fg-dim)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "0.4rem" }}>ATS</div>
                 <div style={{
-                  fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "2.2rem", lineHeight: 1,
-                  color: result.ats.score >= 70 ? "var(--turquoise)" : result.ats.score >= 50 ? "var(--orange)" : "#c0392b",
+                  fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "2.4rem", lineHeight: 1,
+                  color: result.ats.score >= 70 ? "var(--turquoise)" : result.ats.score >= 50 ? "var(--orange)" : "#e05252",
                 }}>
                   {result.ats.score}
                 </div>
               </div>
             )}
  
-            <div style={{
-              border: "2px solid var(--black)", boxShadow: "4px 4px 0px var(--black)",
-              padding: "1rem", background: "var(--black)", display: "flex", flexDirection: "column", justifyContent: "center",
+            <div className="animate-pop stagger-3" style={{
+              border: "1.5px solid var(--border-col)", boxShadow: "4px 4px 0px var(--shadow-col)",
+              padding: "1rem", background: "var(--bg-raised)", display: "flex", flexDirection: "column", justifyContent: "center",
             }}>
-              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "0.9rem", color: "var(--white)", marginBottom: "0.3rem" }}>
+              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "0.9rem", color: "var(--fg)", marginBottom: "0.3rem" }}>
                 {result.match.cv_name}
               </div>
-              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.72rem", color: "#666", lineHeight: 1.5 }}>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.7rem", color: "var(--fg-muted)", lineHeight: 1.6 }}>
                 {result.match.selection_reason}
               </div>
             </div>

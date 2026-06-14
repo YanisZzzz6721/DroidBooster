@@ -3,14 +3,14 @@
 import { useState } from "react"
 
 interface MarkdownViewProps {
-  content:  string
-  label?:   string
+  content:   string
+  label?:    string
   maxHeight?: string
 }
 
 export default function MarkdownView({
   content,
-  label    = "Contenu",
+  label     = "Contenu",
   maxHeight = "420px",
 }: MarkdownViewProps) {
   const [copied, setCopied] = useState(false)
@@ -22,27 +22,30 @@ export default function MarkdownView({
   }
 
   return (
-    <div style={{
-      border:    "2px solid var(--black)",
-      boxShadow: "4px 4px 0px var(--black)",
-      background:"var(--white)",
-    }}>
-
+    <div
+      className="animate-in"
+      style={{
+        border:      "1.5px solid var(--border-col)",
+        boxShadow:   "var(--shadow)",
+        background:  "var(--bg-surface)",
+        overflow:    "hidden",
+      }}
+    >
       {/* Header */}
       <div style={{
-        display:        "flex",
-        alignItems:     "center",
-        justifyContent: "space-between",
-        padding:        "0.6rem 1rem",
-        borderBottom:   "2px solid var(--black)",
-        background:     "var(--black)",
+        display:         "flex",
+        alignItems:      "center",
+        justifyContent:  "space-between",
+        padding:         "0.6rem 1rem",
+        borderBottom:    "1px solid var(--border-col)",
+        background:      "var(--bg-raised)",
       }}>
         <span style={{
           fontFamily:    "'IBM Plex Mono', monospace",
-          fontSize:      "0.72rem",
+          fontSize:      "0.7rem",
           color:         "var(--turquoise)",
           textTransform: "uppercase",
-          letterSpacing: "0.1em",
+          letterSpacing: "0.12em",
         }}>
           ▸ {label}
         </span>
@@ -51,24 +54,26 @@ export default function MarkdownView({
           onClick={copy}
           style={{
             fontFamily:  "'IBM Plex Mono', monospace",
-            fontSize:    "0.7rem",
-            color:       copied ? "var(--turquoise)" : "#666",
+            fontSize:    "0.68rem",
+            color:       copied ? "var(--turquoise)" : "var(--fg-dim)",
             background:  "transparent",
-            border:      `1px solid ${copied ? "var(--turquoise)" : "#333"}`,
+            border:      `1px solid ${copied ? "var(--turquoise)" : "var(--border-col)"}`,
             padding:     "0.2rem 0.6rem",
             cursor:      "pointer",
-            transition:  "all 0.1s ease",
+            transition:  "all 0.15s ease",
           }}
           onMouseEnter={e => {
             if (!copied) {
-              (e.currentTarget as HTMLElement).style.color = "var(--white)"
-              ;(e.currentTarget as HTMLElement).style.borderColor = "var(--white)"
+              const el = e.currentTarget as HTMLElement
+              el.style.color       = "var(--fg)"
+              el.style.borderColor = "var(--fg-muted)"
             }
           }}
           onMouseLeave={e => {
             if (!copied) {
-              (e.currentTarget as HTMLElement).style.color = "#666"
-              ;(e.currentTarget as HTMLElement).style.borderColor = "#333"
+              const el = e.currentTarget as HTMLElement
+              el.style.color       = "var(--fg-dim)"
+              el.style.borderColor = "var(--border-col)"
             }
           }}
         >
@@ -81,16 +86,15 @@ export default function MarkdownView({
         padding:    "1.25rem",
         fontSize:   "0.82rem",
         fontFamily: "'IBM Plex Mono', monospace",
-        color:      "var(--black)",
+        color:      "var(--fg)",
         whiteSpace: "pre-wrap",
-        lineHeight: 1.7,
+        lineHeight: 1.75,
         maxHeight,
         overflowY:  "auto",
-        background: "#FAFAF8",
+        background: "var(--bg-input)",
       }}>
         {content}
       </pre>
-
     </div>
   )
 }

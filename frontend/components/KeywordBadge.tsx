@@ -3,63 +3,64 @@
 interface KeywordBadgeProps {
   word:    string
   variant: "found" | "missing" | "neutral"
-  index?:  number   // pour le stagger
+  index?:  number
 }
 
 const STYLES = {
   found: {
-    background: "var(--turquoise)",
-    color:      "var(--white)",
-    border:     "1.5px solid var(--black)",
-    shadow:     "2px 2px 0px var(--black)",
-    hoverShadow:"3px 3px 0px var(--black)",
+    bg:          "rgba(10,191,188,0.15)",
+    color:       "var(--turquoise)",
+    border:      "1.5px solid rgba(10,191,188,0.4)",
+    hoverBorder: "rgba(10,191,188,0.8)",
+    hoverBg:     "rgba(10,191,188,0.25)",
   },
   missing: {
-    background: "var(--white)",
-    color:      "#c0392b",
-    border:     "1.5px solid #c0392b",
-    shadow:     "2px 2px 0px #c0392b",
-    hoverShadow:"3px 3px 0px #c0392b",
+    bg:          "rgba(224,82,82,0.1)",
+    color:       "#e05252",
+    border:      "1.5px solid rgba(224,82,82,0.35)",
+    hoverBorder: "rgba(224,82,82,0.7)",
+    hoverBg:     "rgba(224,82,82,0.2)",
   },
   neutral: {
-    background: "var(--gray-100)",
-    color:      "var(--black)",
-    border:     "1.5px solid var(--black)",
-    shadow:     "2px 2px 0px var(--black)",
-    hoverShadow:"3px 3px 0px var(--black)",
+    bg:          "var(--bg-raised)",
+    color:       "var(--fg-muted)",
+    border:      "1.5px solid var(--border-col)",
+    hoverBorder: "var(--fg-dim)",
+    hoverBg:     "var(--bg-raised)",
   },
 }
 
 export default function KeywordBadge({ word, variant, index = 0 }: KeywordBadgeProps) {
   const s = STYLES[variant]
-  // Stagger max 8 → cycle
   const staggerClass = `stagger-${Math.min((index % 8) + 1, 8)}`
 
   return (
     <span
-      className={`animate-in keyword-badge ${staggerClass}`}
+      className={`animate-pop keyword-badge ${staggerClass}`}
       style={{
         fontFamily:  "'IBM Plex Mono', monospace",
-        fontSize:    "0.72rem",
+        fontSize:    "0.7rem",
         fontWeight:  500,
-        padding:     "0.2rem 0.6rem",
-        background:  s.background,
+        padding:     "0.2rem 0.55rem",
+        background:  s.bg,
         color:       s.color,
         border:      s.border,
-        boxShadow:   s.shadow,
         display:     "inline-block",
         lineHeight:  1.4,
         userSelect:  "none",
+        transition:  "background 120ms ease, border-color 120ms ease, transform 120ms var(--ease-spring)",
       }}
       onMouseEnter={e => {
         const el = e.currentTarget as HTMLSpanElement
-        el.style.transform  = "translateY(-2px)"
-        el.style.boxShadow  = s.hoverShadow
+        el.style.transform   = "translateY(-2px)"
+        el.style.background  = s.hoverBg
+        el.style.borderColor = s.hoverBorder
       }}
       onMouseLeave={e => {
         const el = e.currentTarget as HTMLSpanElement
-        el.style.transform  = ""
-        el.style.boxShadow  = s.shadow
+        el.style.transform   = ""
+        el.style.background  = s.bg
+        el.style.borderColor = s.border.split(" ").pop()!
       }}
     >
       {variant === "found"   && "✓ "}

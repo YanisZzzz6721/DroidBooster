@@ -12,38 +12,38 @@ interface PushButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const VARIANTS = {
   primary: {
-    background:   "var(--orange)",
-    color:        "var(--white)",
-    shadow:       "4px 4px 0px var(--black)",
-    shadowHover:  "6px 6px 0px var(--black)",
-    hoverBg:      "var(--orange)",
-    hoverColor:   "var(--white)",
-    border:       "2px solid var(--black)",
+    bg:          "var(--orange)",
+    color:       "#fff",
+    shadow:      "4px 4px 0px var(--shadow-col)",
+    shadowHover: "4px 4px 0px var(--orange)",
+    border:      "1.5px solid var(--orange)",
+    hoverBg:     "var(--orange-dark)",
+    hoverColor:  "#fff",
   },
   secondary: {
-    background:   "var(--white)",
-    color:        "var(--black)",
-    shadow:       "4px 4px 0px var(--black)",
-    shadowHover:  "6px 6px 0px var(--black)",
-    hoverBg:      "var(--turquoise)",
-    hoverColor:   "var(--white)",
-    border:       "2px solid var(--black)",
+    bg:          "var(--bg-raised)",
+    color:       "var(--fg)",
+    shadow:      "4px 4px 0px var(--shadow-col)",
+    shadowHover: "4px 4px 0px var(--turquoise)",
+    border:      "1.5px solid var(--border-col)",
+    hoverBg:     "var(--turquoise)",
+    hoverColor:  "#fff",
   },
   danger: {
-    background:   "var(--white)",
-    color:        "#c0392b",
-    shadow:       "4px 4px 0px #c0392b",
-    shadowHover:  "6px 6px 0px #c0392b",
-    hoverBg:      "#c0392b",
-    hoverColor:   "var(--white)",
-    border:       "2px solid #c0392b",
+    bg:          "var(--bg-raised)",
+    color:       "#e05252",
+    shadow:      "4px 4px 0px var(--shadow-col)",
+    shadowHover: "4px 4px 0px #e05252",
+    border:      "1.5px solid #e05252",
+    hoverBg:     "#e05252",
+    hoverColor:  "#fff",
   },
 }
 
 const SIZES = {
-  sm: { padding: "0.4rem 1rem",    fontSize: "0.78rem", spinnerSize: "14px" },
-  md: { padding: "0.65rem 1.5rem", fontSize: "0.88rem", spinnerSize: "16px" },
-  lg: { padding: "0.85rem 2rem",   fontSize: "1rem",    spinnerSize: "18px" },
+  sm: { padding: "0.4rem 1rem",    fontSize: "0.76rem", spinnerSize: "13px" },
+  md: { padding: "0.65rem 1.5rem", fontSize: "0.88rem", spinnerSize: "15px" },
+  lg: { padding: "0.85rem 2rem",   fontSize: "0.95rem", spinnerSize: "17px" },
 }
 
 export default function PushButton({
@@ -81,8 +81,8 @@ export default function PushButton({
       const el = e.currentTarget
       el.style.transform  = "translate(0, 0)"
       el.style.boxShadow  = v.shadow
-      el.style.background = success ? "var(--turquoise)" : v.background
-      el.style.color      = success ? "var(--white)"     : v.color
+      el.style.background = success ? "var(--turquoise)" : v.bg
+      el.style.color      = success ? "#fff" : v.color
     }
     onMouseLeave?.(e)
   }
@@ -90,7 +90,7 @@ export default function PushButton({
   const handleMouseDown = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (!isDisabled) {
       const el = e.currentTarget
-      el.style.transform = "translate(4px, 4px)"
+      el.style.transform = "translate(3px, 3px)"
       el.style.boxShadow = "none"
     }
     onMouseDown?.(e)
@@ -105,9 +105,6 @@ export default function PushButton({
     onMouseUp?.(e)
   }
 
-  const bgColor  = success ? "var(--turquoise)" : v.background
-  const txtColor = success ? "var(--white)"     : v.color
-
   return (
     <button
       disabled={isDisabled}
@@ -116,8 +113,8 @@ export default function PushButton({
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
       style={{
-        background:     bgColor,
-        color:          txtColor,
+        background:     success ? "var(--turquoise)" : v.bg,
+        color:          success ? "#fff" : v.color,
         border:         v.border,
         boxShadow:      v.shadow,
         fontFamily:     "'Space Grotesk', sans-serif",
@@ -133,7 +130,7 @@ export default function PushButton({
         gap:            "0.5rem",
         width:          fullWidth ? "100%" : "auto",
         transition:     "background 80ms ease, color 80ms ease, box-shadow 80ms ease, transform 80ms ease",
-        opacity:        disabled ? 0.5 : 1,
+        opacity:        disabled ? 0.4 : 1,
         userSelect:     "none",
         ...style,
       }}
@@ -145,10 +142,8 @@ export default function PushButton({
           style={{ width: s.spinnerSize, height: s.spinnerSize }}
         />
       ) : success ? (
-        <span className="animate-bounce-in">✓ OK</span>
-      ) : (
-        children
-      )}
+        <span className="animate-bounce-in">✓</span>
+      ) : children}
     </button>
   )
 }

@@ -74,8 +74,8 @@ export default function Sidebar() {
       left:          0,
       width:         "220px",
       height:        "100vh",
-      background:    "#0D2137",
-      borderRight:   "2px solid var(--black)",
+      background:    "#0B1120",
+      borderRight:   "1px solid rgba(45,55,72,0.8)",
       display:       "flex",
       flexDirection: "column",
       zIndex:        100,
@@ -105,11 +105,11 @@ export default function Sidebar() {
                 gap:            "0.75rem",
                 padding:        "0.75rem 1.25rem",
                 textDecoration: "none",
-                borderLeft:     active ? "4px solid var(--orange)" : "4px solid transparent",
-                background:     active ? "rgba(0,0,0,0.15)" : "transparent",
-                transition:     "all 0.1s ease",
+                borderLeft:     active ? "3px solid var(--orange)" : "3px solid transparent",
+                background:     active ? "rgba(232,99,10,0.1)" : "transparent",
+                transition:     "all 0.15s ease",
               }}
-              onMouseEnter={e => { if (!active)(e.currentTarget as HTMLElement).style.background = "rgba(0,0,0,0.1)" }}
+              onMouseEnter={e => { if (!active)(e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)" }}
               onMouseLeave={e => { if (!active)(e.currentTarget as HTMLElement).style.background = "transparent" }}
             >
               <span style={{ fontSize: "1rem", color: active ? "var(--orange)" : "rgba(255,255,255,0.7)", width: "18px", textAlign: "center", flexShrink: 0 }}>

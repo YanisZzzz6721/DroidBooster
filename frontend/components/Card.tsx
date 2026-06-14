@@ -1,13 +1,13 @@
 import { HTMLAttributes } from "react"
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  title?:     string
-  tag?:       string
-  tagColor?:  "turquoise" | "orange" | "black"
-  hover?:     boolean
-  padding?:   string
-  animate?:   boolean
-  stagger?:   number   // 1-8
+  title?:    string
+  tag?:      string
+  tagColor?: "turquoise" | "orange" | "black"
+  hover?:    boolean
+  padding?:  string
+  animate?:  boolean
+  stagger?:  number
 }
 
 export default function Card({
@@ -31,51 +31,52 @@ export default function Card({
   const tagBg: Record<string, string> = {
     turquoise: "var(--turquoise)",
     orange:    "var(--orange)",
-    black:     "var(--black)",
+    black:     "var(--bg-page)",
   }
 
   return (
     <div
       className={`${animClass} ${className}`.trim()}
       style={{
-        background:  "var(--white)",
-        border:      "2px solid var(--black)",
-        boxShadow:   "4px 4px 0px var(--black)",
+        background:  "var(--bg-surface)",
+        border:      "1.5px solid var(--border-col)",
+        boxShadow:   "var(--shadow)",
         transition:  hover
-          ? "box-shadow 120ms var(--ease-smooth), transform 120ms var(--ease-smooth)"
+          ? "box-shadow 120ms var(--ease-smooth), transform 120ms var(--ease-smooth), border-color 120ms var(--ease-smooth)"
           : "none",
         ...style,
       }}
       onMouseEnter={hover ? e => {
         const el = e.currentTarget as HTMLDivElement
-        el.style.boxShadow = "6px 6px 0px var(--black)"
-        el.style.transform = "translate(-1px, -1px)"
+        el.style.boxShadow   = "4px 4px 0px var(--turquoise)"
+        el.style.borderColor = "var(--turquoise)"
+        el.style.transform   = "translate(-1px, -1px)"
       } : undefined}
       onMouseLeave={hover ? e => {
         const el = e.currentTarget as HTMLDivElement
-        el.style.boxShadow = "4px 4px 0px var(--black)"
-        el.style.transform = "translate(0, 0)"
+        el.style.boxShadow   = "var(--shadow)"
+        el.style.borderColor = "var(--border-col)"
+        el.style.transform   = "translate(0, 0)"
       } : undefined}
       {...props}
     >
-      {/* Header */}
       {(title || tag) && (
         <div style={{
           display:         "flex",
           alignItems:      "center",
           justifyContent:  "space-between",
-          padding:         `0.75rem ${padding}`,
-          borderBottom:    "2px solid var(--black)",
-          background:      "var(--gray-100)",
+          padding:         `0.65rem ${padding}`,
+          borderBottom:    "1px solid var(--border-col)",
+          background:      "var(--bg-raised)",
         }}>
           {title && (
             <span style={{
               fontFamily:    "'Space Grotesk', sans-serif",
               fontWeight:    700,
-              fontSize:      "0.8rem",
+              fontSize:      "0.75rem",
               textTransform: "uppercase",
-              letterSpacing: "0.08em",
-              color:         "var(--black)",
+              letterSpacing: "0.1em",
+              color:         "var(--fg-muted)",
             }}>
               {title}
             </span>
@@ -83,12 +84,12 @@ export default function Card({
           {tag && (
             <span style={{
               fontFamily:  "'IBM Plex Mono', monospace",
-              fontSize:    "0.7rem",
+              fontSize:    "0.68rem",
               fontWeight:  500,
               padding:     "0.15rem 0.5rem",
-              border:      "1.5px solid var(--black)",
+              border:      "1.5px solid transparent",
               background:  tagBg[tagColor] ?? "var(--turquoise)",
-              color:       "var(--white)",
+              color:       "#fff",
             }}>
               {tag}
             </span>
@@ -96,11 +97,9 @@ export default function Card({
         </div>
       )}
 
-      {/* Contenu */}
       <div style={{ padding }}>
         {children}
       </div>
-
     </div>
   )
 }
