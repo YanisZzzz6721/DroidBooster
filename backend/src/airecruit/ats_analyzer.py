@@ -5,11 +5,16 @@ Module d'analyse ATS (Applicant Tracking System).
 import json
 import os
 import re
+import time
 from datetime import datetime
 from pathlib import Path
 
 import anthropic
 from dotenv import load_dotenv
+
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+from database import save_generated_cv as db_save_generated_cv, get_examples_by_secteur
 
 load_dotenv()
 
@@ -18,6 +23,9 @@ MAX_TOKENS = 1500
 
 OUTPUT_DIR = Path(__file__).parent.parent.parent / "output"
 CVS_DIR    = Path(__file__).parent.parent.parent / "cvs"
+
+_examples_cache: dict[str, tuple[str, float]] = {}
+_CACHE_TTL = 300  # secondes
 
 MOIS_FR = {
     1: "janvier", 2: "février", 3: "mars", 4: "avril",
@@ -114,7 +122,7 @@ def _get_generated_dir() -> Path:
     return generated_dir
 
 
-def _save_generated_cv(cv_optimise: str, cv_name: str, entreprise: str = "") -> Path:
+def _save_generated_cv(cv_optimise: str, cv_name: str, entreprise: str = "", secteur: str = "", score_ats: int = None) -> Path:
     generated_dir = _get_generated_dir()
     today        = datetime.now().strftime("%Y%m%d")
     ent_safe     = entreprise.lower().replace(" ", "_")[:20] if entreprise else "unknown"
@@ -131,6 +139,20 @@ def _save_generated_cv(cv_optimise: str, cv_name: str, entreprise: str = "") -> 
     filename = f"cv_{cv_name_safe}_{ent_safe}_{today}.md"
     path     = generated_dir / filename
     path.write_text(cv_optimise, encoding="utf-8")
+
+    # Sauvegarde en DB (en plus du fichier)
+    try:
+        db_save_generated_cv(
+            secteur=secteur or "autre",
+            cv_base=cv_name_safe,
+            content=cv_optimise,
+            score_ats=score_ats,
+            entreprise=entreprise or None,
+            file_path=str(path),
+        )
+    except Exception:
+        pass  # La DB est un bonus — ne pas bloquer si elle échoue
+
     return path
 
 
@@ -139,7 +161,30 @@ def _extract_score(content: str) -> int:
     return int(m.group(1)) if m else 0
 
 
-def _load_examples(secteur: str = "", max_examples: int = 2, min_score: int = 75) -> str:
+def _load_examples(secteur: str = "", max_examples: int = 2, min_score: int = 85) -> str:
+    cache_key = f"{secteur}_{max_examples}_{min_score}"
+    now = time.time()
+
+    if cache_key in _examples_cache:
+        cached_result, cached_at = _examples_cache[cache_key]
+        if now - cached_at < _CACHE_TTL:
+            return cached_result
+
+    # ── Priorité DB ───────────────────────────────────────────────────────────
+    try:
+        rows = get_examples_by_secteur(secteur, max_examples=max_examples, min_score=min_score)
+        if rows:
+            examples = []
+            for row in rows:
+                lines = [l for l in row["content"].split("\n") if not l.startswith("<!--")]
+                examples.append(f"<!-- Score ATS : {row['score_ats']}/100 -->\n" + "\n".join(lines).strip())
+            result = "\n\n---EXEMPLE---\n\n".join(examples)
+            _examples_cache[cache_key] = (result, now)
+            return result
+    except Exception:
+        pass  # Fallback fichiers si la DB échoue
+
+    # ── Fallback fichiers (système actuel inchangé) ────────────────────────────
     generated_dir = _get_generated_dir()
     all_files = sorted(
         generated_dir.glob("*.md"),
@@ -147,6 +192,7 @@ def _load_examples(secteur: str = "", max_examples: int = 2, min_score: int = 75
         reverse=True,
     )
     if not all_files:
+        _examples_cache[cache_key] = ("", now)
         return ""
     if secteur and secteur != "autre":
         filtered   = [f for f in all_files if secteur in f.name]
@@ -163,6 +209,7 @@ def _load_examples(secteur: str = "", max_examples: int = 2, min_score: int = 75
         except Exception:
             continue
     if not good_examples:
+        _examples_cache[cache_key] = ("", now)
         return ""
     good_examples.sort(key=lambda x: x[0], reverse=True)
     top      = good_examples[:max_examples]
@@ -170,7 +217,15 @@ def _load_examples(secteur: str = "", max_examples: int = 2, min_score: int = 75
     for score, content in top:
         lines = [l for l in content.split("\n") if not l.startswith("<!--")]
         examples.append(f"<!-- Score ATS : {score}/100 -->\n" + "\n".join(lines).strip())
-    return "\n\n---EXEMPLE---\n\n".join(examples)
+    result = "\n\n---EXEMPLE---\n\n".join(examples)
+
+    _examples_cache[cache_key] = (result, now)
+    return result
+
+
+def invalidate_examples_cache() -> None:
+    """À appeler après la sauvegarde d'un nouveau CV généré."""
+    _examples_cache.clear()
 
 
 # ─── Analyse ATS ─────────────────────────────────────────────────────────────
@@ -442,7 +497,8 @@ Suggestions d'amélioration :
     cv_path = OUTPUT_DIR / f"cv_optimise_{cv_name}.md"
     cv_path.write_text(header + cv_optimise, encoding="utf-8")
 
-    _save_generated_cv(header + cv_optimise, cv_name, entreprise)
+    _save_generated_cv(header + cv_optimise, cv_name, entreprise, secteur=secteur, score_ats=analysis.get("score"))
+    invalidate_examples_cache()
 
     try:
         from airecruit.cv_renderer import render_cv_pdf
