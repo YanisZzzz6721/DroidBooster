@@ -25,6 +25,7 @@ from database import (
     init_db,
     save_candidature, get_history, get_candidature, delete_candidature,
     save_export, get_export_history, get_export, delete_export,
+    get_generated_cv_stats,
 )
 from parser import parse_cv
 from builder import build_docx
@@ -69,7 +70,10 @@ class GenerateRequest(BaseModel):
 class AtsRequest(BaseModel):
     offre_texte:  str
     match_result: dict
-
+    
+class ParseCvRequest(BaseModel):
+    cv_markdown: str
+ 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -227,8 +231,10 @@ async def run(
         )
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
-
+    
     return response
 
 
@@ -406,6 +412,29 @@ def search_jobs_endpoint(
     try:
         jobs = search_jobs(poste, ville, limit)
         return {"jobs": jobs, "count": len(jobs)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ─── RAG Stats ────────────────────────────────────────────────────────────────
+
+@app.get("/rag/stats")
+def rag_stats():
+    """Retourne les stats des CVs générés par secteur."""
+    try:
+        return {"stats": get_generated_cv_stats()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/parse-cv")
+def parse_cv_endpoint(body: ParseCvRequest):
+    """Parse un CV Markdown et retourne le dict structuré."""
+    if not body.cv_markdown.strip():
+        raise HTTPException(status_code=400, detail="Le CV Markdown est vide.")
+    try:
+        result = parse_cv(body.cv_markdown)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
  
