@@ -61,6 +61,21 @@ def init_db():
         )
     """)
 
+    # Table generated_letters — RAG lettres par secteur
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS generated_letters (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            created_at      TEXT    NOT NULL,
+            secteur         TEXT    NOT NULL,
+            entreprise      TEXT,
+            poste           TEXT,
+            cv_base         TEXT    NOT NULL,
+            score_qualite   INTEGER,
+            content         TEXT    NOT NULL,
+            file_path       TEXT
+        )
+    """)
+
     # Table exports
     conn.execute("""
         CREATE TABLE IF NOT EXISTS exports (
@@ -226,6 +241,118 @@ def get_generated_cv_stats() -> list[dict]:
     ).fetchall()
     conn.close()
     return [dict(row) for row in rows]
+
+
+# ─── GENERATED LETTERS ────────────────────────────────────────────────────────
+
+def save_generated_letter(
+    secteur:       str,
+    cv_base:       str,
+    content:       str,
+    score_qualite: int  = None,
+    entreprise:    str  = None,
+    poste:         str  = None,
+    file_path:     str  = None,
+) -> int:
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.execute(
+        """
+        INSERT INTO generated_letters
+            (created_at, secteur, entreprise, poste, cv_base, score_qualite, content, file_path)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (datetime.now().isoformat(), secteur, entreprise, poste, cv_base, score_qualite, content, file_path),
+    )
+    conn.commit()
+    row_id = cursor.lastrowid
+    conn.close()
+    return row_id
+
+
+def get_letter_examples_by_secteur(
+    secteur:      str,
+    max_examples: int = 2,
+    min_score:    int = 75,
+) -> list[dict]:
+    """Retourne les meilleures lettres du même secteur pour le RAG."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    if secteur and secteur != "autre":
+        rows = conn.execute(
+            """
+            SELECT content, score_qualite, cv_base, entreprise, poste
+            FROM generated_letters
+            WHERE secteur = ? AND score_qualite >= ?
+            ORDER BY score_qualite DESC, created_at DESC
+            LIMIT ?
+            """,
+            (secteur, min_score, max_examples),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            """
+            SELECT content, score_qualite, cv_base, entreprise, poste
+            FROM generated_letters
+            WHERE score_qualite >= ?
+            ORDER BY score_qualite DESC, created_at DESC
+            LIMIT ?
+            """,
+            (min_score, max_examples),
+        ).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def get_generated_letter_stats() -> list[dict]:
+    """Retourne le nombre de lettres et le score moyen par secteur."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute(
+        """
+        SELECT secteur, COUNT(*) as total, ROUND(AVG(score_qualite), 1) as score_moyen
+        FROM generated_letters
+        GROUP BY secteur
+        ORDER BY total DESC
+        """
+    ).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def get_rag_stats() -> dict:
+    """Stats globales RAG : CVs + Lettres."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+
+    cv_stats = conn.execute(
+        "SELECT COUNT(*) as total, ROUND(AVG(score_ats),1) as score_moyen FROM generated_cvs"
+    ).fetchone()
+
+    letter_stats = conn.execute(
+        "SELECT COUNT(*) as total, ROUND(AVG(score_qualite),1) as score_moyen FROM generated_letters"
+    ).fetchone()
+
+    cv_by_secteur = conn.execute(
+        "SELECT secteur, COUNT(*) as total, ROUND(AVG(score_ats),1) as score_moyen FROM generated_cvs GROUP BY secteur ORDER BY total DESC"
+    ).fetchall()
+
+    letter_by_secteur = conn.execute(
+        "SELECT secteur, COUNT(*) as total, ROUND(AVG(score_qualite),1) as score_moyen FROM generated_letters GROUP BY secteur ORDER BY total DESC"
+    ).fetchall()
+
+    conn.close()
+    return {
+        "cvs": {
+            "total":       cv_stats["total"],
+            "score_moyen": cv_stats["score_moyen"],
+            "par_secteur": [dict(r) for r in cv_by_secteur],
+        },
+        "lettres": {
+            "total":       letter_stats["total"],
+            "score_moyen": letter_stats["score_moyen"],
+            "par_secteur": [dict(r) for r in letter_by_secteur],
+        },
+    }
 
 
 # ─── EXPORTS ──────────────────────────────────────────────────────────────────
