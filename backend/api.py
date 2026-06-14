@@ -35,6 +35,9 @@ from airecruit.scraper import search_jobs
 
 load_dotenv()
 
+from logger import get_logger, log_pipeline_start, log_pipeline_end, log_error
+log = get_logger("api")
+
 app = FastAPI(title="DroidBooster API", version="1.0.0")
 
 app.add_middleware(
@@ -151,7 +154,7 @@ def ats(body: AtsRequest):
         analysis    = analyze_ats(body.offre_texte, body.match_result)
         metadata   = extract_offer_metadata(body.offre_texte)
         cv_path, _ = generate_optimized_cv(
-                offer_text, match_result, analysis,
+                body.offre_texte, body.match_result, analysis,
                 entreprise=metadata.get("entreprise", ""),
                 secteur=metadata.get("secteur", ""),
             )
