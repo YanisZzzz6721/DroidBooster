@@ -44,7 +44,8 @@ Règles STRICTES :
 - Copie uniquement ce qui est écrit mot pour mot dans le CV
 - Pas d'interprétation, pas d'inférence, pas d'ajout
 - Format : une ligne par fait, commençant par "- "
-- Catégories : EXPÉRIENCES (poste | entreprise | dates), COMPÉTENCES, FORMATIONS, AUTRES
+- Catégories : EXPÉRIENCES (poste | entreprise — sans les dates), COMPÉTENCES, FORMATIONS, RÉALISATIONS CONCRÈTES
+- NE PAS inclure les dates, années ou durées — elles ne doivent jamais apparaître dans la lettre
 
 Si une information n'est pas dans le CV → ne l'écris pas.
 
@@ -198,7 +199,7 @@ Mots interdits : {eviter_str}
 
 === STRUCTURE OBLIGATOIRE ===
 p1 (2-3 phrases) : Qui est le candidat + pourquoi ce poste + ce qui l'attire dans CETTE entreprise (la nommer).
-p2 (4 phrases exactement) : Faits concrets du CV en ordre chronologique inversé + mots-clés ATS en forme exacte.
+p2 (4 phrases exactement) : Faits concrets du CV, expériences citées dans l'ordre le plus récent en premier + mots-clés ATS intégrés naturellement.
 p3 (4 phrases exactement) : Valeur ajoutée spécifique + disponibilité + ouverture entretien (nommer l'entreprise).
 
 === RÈGLES ABSOLUES ===
@@ -207,10 +208,12 @@ p3 (4 phrases exactement) : Valeur ajoutée spécifique + disponibilité + ouver
 - Aucune mise en forme : pas de liste, pas de gras, pas de titre
 - Pas de formule d'appel ni de signature
 - Jamais inventer une compétence absente des FAITS VÉRIFIABLES ci-dessus
-- Jamais écrire "depuis plusieurs années" — utiliser les dates exactes du CV
+- INTERDIT ABSOLU : ne jamais citer de dates, d'années, de mois ou de périodes (pas de "de 2022 à 2024", pas de "en 2023", pas de "depuis X ans", pas de "pendant 2 ans"). Les dates appartiennent au CV, pas à la lettre.
+- Parler des expériences par leur nature et leur impact, jamais par leur durée ou leurs dates
 - Nommer l'entreprise dans p1 ET dans p3
 - Zéro mot interdit de la liste ci-dessus
 - Adapter le registre au ton de l'entreprise détecté
+- Chaque phrase doit apporter une information nouvelle — zéro redondance entre p1, p2 et p3
 {rag_section}
 
 === OFFRE D'EMPLOI ===
